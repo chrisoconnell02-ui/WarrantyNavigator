@@ -706,6 +706,7 @@ export default function DealerFactoryWarrantyPlanner() {
   const [authError, setAuthError] = useState<string>("");
   const [authMessage, setAuthMessage] = useState<string>("");
   const [snapshotName, setSnapshotName] = useState<string>("");
+  const [activeSnapshotId, setActiveSnapshotId] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState<PlannerSnapshot[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState<boolean>(false);
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
@@ -830,6 +831,7 @@ export default function DealerFactoryWarrantyPlanner() {
     if (!session || !supabase) {
       setSnapshots([]);
       setSnapshotName("");
+      setActiveSnapshotId(null);
       setSnapshotError("");
       setSnapshotMessage("");
       setDealerName("Dealer Account");
@@ -910,6 +912,7 @@ export default function DealerFactoryWarrantyPlanner() {
   };
 
   const loadSnapshot = (snapshot: PlannerSnapshot) => {
+    setActiveSnapshotId(snapshot.id);
     setVin(snapshot.vin ?? "");
     setSelectedYear(snapshot.vehicle_year);
     setSelectedMake(snapshot.make);
@@ -949,16 +952,10 @@ export default function DealerFactoryWarrantyPlanner() {
   };
 
   const handleSaveSnapshot = async () => {
-    if (!supabase || !session) return;
+    if (!supabase || !session) return false;
 
     const trimmedName = snapshotName.trim() || `${vehicleName} snapshot`;
-
-    setSaveLoading(true);
-    setSnapshotError("");
-    setSnapshotMessage("");
-
-    const { error } = await supabase.from("planner_snapshots").insert({
-      user_id: session.user.id,
+    const payload = {
       snapshot_name: trimmedName,
       vin: vin || null,
       vehicle_year: selectedYear,
@@ -976,17 +973,34 @@ export default function DealerFactoryWarrantyPlanner() {
       show_vsc_overlay: showVscOverlay,
       vsc_years: vscYears,
       vsc_miles: vscMiles
-    });
+    };
+
+    setSaveLoading(true);
+    setSnapshotError("");
+    setSnapshotMessage("");
+
+    const { data, error } = activeSnapshotId
+      ? await supabase.from("planner_snapshots").update(payload).eq("id", activeSnapshotId).select("id").single()
+      : await supabase.from("planner_snapshots").insert({
+          user_id: session.user.id,
+          ...payload
+        }).select("id").single();
 
     if (error) {
       setSnapshotError(error.message);
+      setSaveLoading(false);
+      return false;
     } else {
+      if (data?.id) {
+        setActiveSnapshotId(String(data.id));
+      }
       setSnapshotName(trimmedName);
-      setSnapshotMessage(`Saved "${trimmedName}".`);
+      setSnapshotMessage(`${activeSnapshotId ? "Updated" : "Saved"} "${trimmedName}".`);
       await refreshSnapshots();
     }
 
     setSaveLoading(false);
+    return true;
   };
 
   const handleDeleteSnapshot = async (snapshotId: string) => {
@@ -1001,6 +1015,9 @@ export default function DealerFactoryWarrantyPlanner() {
     if (error) {
       setSnapshotError(error.message);
     } else {
+      if (activeSnapshotId === snapshotId) {
+        setActiveSnapshotId(null);
+      }
       setSnapshotMessage("Snapshot deleted.");
       await refreshSnapshots();
     }
@@ -1013,6 +1030,13 @@ export default function DealerFactoryWarrantyPlanner() {
     await supabase.auth.signOut();
     setAuthMessage("");
     setAuthError("");
+  };
+
+  const handleSaveAndPrint = async () => {
+    const didSave = await handleSaveSnapshot();
+    if (didSave) {
+      window.print();
+    }
   };
 
   if (authLoading) {
@@ -1035,14 +1059,14 @@ export default function DealerFactoryWarrantyPlanner() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6 printable-shell">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="grid gap-6 lg:grid-cols-[360px_1fr]"
+          className="grid gap-6 lg:grid-cols-[360px_1fr] print-grid"
         >
-          <Card className="rounded-2xl shadow-sm border-slate-200">
+          <Card className="rounded-2xl shadow-sm border-slate-200 no-print">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <ShieldCheck className="w-5 h-5" />
@@ -1243,7 +1267,7 @@ export default function DealerFactoryWarrantyPlanner() {
           </Card>
 
           <div className="space-y-6">
-            <Card className="rounded-2xl shadow-sm border-slate-200">
+            <Card className="rounded-2xl shadow-sm border-slate-200 printable-card">
               <CardHeader className="pb-3">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -1258,7 +1282,10 @@ export default function DealerFactoryWarrantyPlanner() {
                     {limitedCoverages.length > 0 ? <Badge className="rounded-full">Limited electronics coverage applies</Badge> : null}
                     {showVscOverlay ? <Badge className="rounded-full">VSC {vscYears} yr / {formatMiles(vscMiles)} mi</Badge> : null}
                     <Badge className="rounded-full">Loan {formatYears(derived.loanYears)} yrs</Badge>
-                    <button type="button" onClick={() => void handleSignOut()} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Log Out</button>
+                    <button type="button" onClick={() => void handleSaveAndPrint()} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 no-print">
+                      Save / Print PDF
+                    </button>
+                    <button type="button" onClick={() => void handleSignOut()} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 no-print">Log Out</button>
                   </div>
                 </div>
               </CardHeader>
@@ -1336,6 +1363,38 @@ export default function DealerFactoryWarrantyPlanner() {
                     </CardContent>
                   </Card>
                 </div>
+
+                <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-page-break-avoid">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Acknowledgement</CardTitle>
+                    <p className="text-sm text-slate-500">
+                      Customer acknowledgement of the warranty coverage and ownership timeline reviewed during this presentation.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6 text-sm text-slate-700">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 leading-6">
+                      I acknowledge that the warranty timeline, ownership assumptions, and coverage gaps shown in this snapshot were reviewed with me.
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">Customer Signature</div>
+                        <div className="h-16 border-b border-slate-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">Date</div>
+                        <div className="h-16 border-b border-slate-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">Printed Name</div>
+                        <div className="h-12 border-b border-slate-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">Dealership Representative</div>
+                        <div className="h-12 border-b border-slate-400" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </div>

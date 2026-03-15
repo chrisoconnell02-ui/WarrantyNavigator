@@ -21,3 +21,43 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.print-only {
+  display: none;
+}
+
+@page {
+  size: letter;
+  margin: 0.5in;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-grid {
+    display: block !important;
+  }
+
+  .printable-shell {
+    max-width: none !important;
+  }
+
+  .printable-card {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .print-page-break-avoid {
+    break-inside: avoid;
+  }
+}
