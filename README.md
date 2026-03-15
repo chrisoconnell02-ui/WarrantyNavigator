@@ -13,7 +13,7 @@ Deploy this folder as a `Next.js` project. In Vercel, leave the `Output Director
 
 ## Supabase setup
 
-This app currently ships with a front-end-only login screen. The database schema for a real Supabase backend is included in [supabase/schema.sql](/c:/Users/walki/OneDrive/Desktop/Save%20Me/chris-project/attachments/WarrantyNavigator/supabase/schema.sql).
+This app now uses Supabase for email authentication and saved planner snapshots. The database schema is included in [supabase/schema.sql](/c:/Users/walki/OneDrive/Desktop/Save%20Me/chris-project/attachments/WarrantyNavigator/supabase/schema.sql).
 
 Recommended setup:
 
@@ -31,6 +31,13 @@ The schema creates:
 - `profiles`: one row per authenticated dealer user
 - `planner_snapshots`: saved warranty calculations tied to each user
 
-## Next step
+## Application behavior
 
-The database is now defined, but the UI is still using placeholder client-only auth. The next implementation step is wiring the login form and snapshot saving/loading to Supabase Auth and `planner_snapshots`.
+- Sign up creates a Supabase auth user and stores `dealer_name` in `profiles`
+- Sign in uses Supabase email/password auth
+- Saved snapshots are loaded from `planner_snapshots` for the signed-in user only
+
+## Notes
+
+- Run `npm install` after pulling these changes so `@supabase/supabase-js` is installed
+- If email confirmation is enabled in Supabase Auth, new users must confirm their email before signing in

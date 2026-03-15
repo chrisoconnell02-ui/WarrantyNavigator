@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import type { Session } from "@supabase/supabase-js";
 import { Car, CalendarClock, CreditCard, Gauge, ScanLine, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const MODEL_LABELS: Record<string, string> = {
   CRV: "CR-V",
@@ -51,6 +53,30 @@ type WarrantyData = {
 };
 
 type VehicleLibrary = Record<string, Record<string, Record<string, WarrantyData>>>;
+
+type AuthMode = "sign-in" | "sign-up";
+
+type PlannerSnapshot = {
+  id: string;
+  snapshot_name: string;
+  vin: string | null;
+  vehicle_year: number;
+  make: string;
+  model: string;
+  vehicle_name: string;
+  miles_at_origination: number;
+  factory_years: number;
+  factory_miles: number;
+  powertrain_years: number;
+  powertrain_miles: number;
+  loan_term_months: number;
+  annual_mileage: number;
+  ownership_years: number;
+  show_vsc_overlay: boolean;
+  vsc_years: number;
+  vsc_miles: number;
+  created_at: string;
+};
 
 const STANDARD_WARRANTY: WarrantyData = {
   factoryYears: 3,
@@ -514,20 +540,71 @@ function decodeVin(vin: string): DecodedVin {
   };
 }
 
-function LoginScreen({ onLogin }: { onLogin: (dealerName: string) => void }) {
+function normalizeSnapshot(row: Record<string, unknown>): PlannerSnapshot {
+  return {
+    id: String(row.id),
+    snapshot_name: String(row.snapshot_name),
+    vin: row.vin ? String(row.vin) : null,
+    vehicle_year: Number(row.vehicle_year),
+    make: String(row.make),
+    model: String(row.model),
+    vehicle_name: String(row.vehicle_name),
+    miles_at_origination: Number(row.miles_at_origination),
+    factory_years: Number(row.factory_years),
+    factory_miles: Number(row.factory_miles),
+    powertrain_years: Number(row.powertrain_years),
+    powertrain_miles: Number(row.powertrain_miles),
+    loan_term_months: Number(row.loan_term_months),
+    annual_mileage: Number(row.annual_mileage),
+    ownership_years: Number(row.ownership_years),
+    show_vsc_overlay: Boolean(row.show_vsc_overlay),
+    vsc_years: Number(row.vsc_years),
+    vsc_miles: Number(row.vsc_miles),
+    created_at: String(row.created_at)
+  };
+}
+
+function formatSnapshotDate(value: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
+type LoginScreenProps = {
+  mode: AuthMode;
+  onModeChange: (mode: AuthMode) => void;
+  onSubmit: (values: { email: string; password: string; dealerName: string }) => Promise<void>;
+  isSubmitting: boolean;
+  error: string;
+  message: string;
+  configError: string;
+};
+
+function LoginScreen({ mode, onModeChange, onSubmit, isSubmitting, error, message, configError }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [dealerName, setDealerName] = useState("Premier Auto Group");
-  const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      setError("Enter your email and password.");
+      setFormError("Enter your email and password.");
       return;
     }
-    setError("");
-    onLogin(dealerName.trim() || "Dealer Account");
+
+    if (mode === "sign-up" && !dealerName.trim()) {
+      setFormError("Enter the dealer group name for this account.");
+      return;
+    }
+
+    setFormError("");
+    await onSubmit({
+      email: email.trim(),
+      password,
+      dealerName: dealerName.trim() || "Dealer Account"
+    });
   };
 
   return (
@@ -549,6 +626,7 @@ function LoginScreen({ onLogin }: { onLogin: (dealerName: string) => void }) {
                 <div>Factory and powertrain warranty comparison</div>
                 <div>Ownership life cycle vs warranty gap</div>
                 <div>Loan life cycle vs warranty gap</div>
+                <div>Saved scenarios tied to each dealer login</div>
               </div>
             </div>
           </CardContent>
@@ -557,13 +635,13 @@ function LoginScreen({ onLogin }: { onLogin: (dealerName: string) => void }) {
         <Card className="rounded-3xl border-slate-200 shadow-sm bg-white">
           <CardHeader>
             <CardTitle className="text-2xl">Dealer Login</CardTitle>
-            <p className="text-sm text-slate-500">This is the front-end login screen. A real website would connect this to Supabase, Firebase Auth, Clerk, Auth0, or your own backend.</p>
+            <p className="text-sm text-slate-500">Sign in with Supabase email auth, or create a dealer account and save warranty scenarios.</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Dealer Group Name</Label>
-                <Input value={dealerName} onChange={(e) => setDealerName(e.target.value)} placeholder="Dealer group" />
+                <Input value={dealerName} onChange={(e) => setDealerName(e.target.value)} placeholder="Dealer group" disabled={mode === "sign-in"} />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
@@ -573,9 +651,19 @@ function LoginScreen({ onLogin }: { onLogin: (dealerName: string) => void }) {
                 <Label>Password</Label>
                 <Input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" />
               </div>
-              {error ? <div className="text-sm text-red-600">{error}</div> : null}
-              <button type="submit" className="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold hover:bg-slate-800 transition-colors">
-                Sign In
+              {configError ? <div className="text-sm text-red-600">{configError}</div> : null}
+              {formError ? <div className="text-sm text-red-600">{formError}</div> : null}
+              {!formError && error ? <div className="text-sm text-red-600">{error}</div> : null}
+              {message ? <div className="text-sm text-emerald-700">{message}</div> : null}
+              <button type="submit" disabled={isSubmitting || Boolean(configError)} className="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold hover:bg-slate-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
+                {isSubmitting ? "Working..." : mode === "sign-in" ? "Sign In" : "Create Account"}
+              </button>
+              <button
+                type="button"
+                onClick={() => onModeChange(mode === "sign-in" ? "sign-up" : "sign-in")}
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                {mode === "sign-in" ? "Create a New Account" : "Back to Sign In"}
               </button>
             </form>
           </CardContent>
@@ -586,6 +674,7 @@ function LoginScreen({ onLogin }: { onLogin: (dealerName: string) => void }) {
 }
 
 export default function DealerFactoryWarrantyPlanner() {
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const yearOptions = useMemo(() => Object.keys(VEHICLE_LIBRARY).map(Number).sort((a, b) => b - a), []);
   const initialYear = yearOptions[0] || 2026;
   const initialMake = Object.keys(VEHICLE_LIBRARY[String(initialYear)] ?? {})[0] ?? "";
@@ -607,8 +696,20 @@ export default function DealerFactoryWarrantyPlanner() {
   const [showVscOverlay, setShowVscOverlay] = useState<boolean>(true);
   const [vscYears, setVscYears] = useState<number>(5);
   const [vscMiles, setVscMiles] = useState<number>(75000);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [dealerName, setDealerName] = useState<string>("Premier Auto Group");
+  const [dealerName, setDealerName] = useState<string>("Dealer Account");
+  const [authMode, setAuthMode] = useState<AuthMode>("sign-in");
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [authSubmitting, setAuthSubmitting] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string>("");
+  const [authMessage, setAuthMessage] = useState<string>("");
+  const [snapshotName, setSnapshotName] = useState<string>("");
+  const [snapshots, setSnapshots] = useState<PlannerSnapshot[]>([]);
+  const [snapshotsLoading, setSnapshotsLoading] = useState<boolean>(false);
+  const [saveLoading, setSaveLoading] = useState<boolean>(false);
+  const [snapshotBusyId, setSnapshotBusyId] = useState<string | null>(null);
+  const [snapshotError, setSnapshotError] = useState<string>("");
+  const [snapshotMessage, setSnapshotMessage] = useState<string>("");
 
   const availableMakes = useMemo(() => Object.keys(VEHICLE_LIBRARY[String(selectedYear)] ?? {}), [selectedYear]);
   const availableModels = useMemo(() => Object.keys(VEHICLE_LIBRARY[String(selectedYear)]?.[selectedMake] ?? {}), [selectedYear, selectedMake]);
@@ -695,11 +796,239 @@ export default function DealerFactoryWarrantyPlanner() {
     return `Once you account for ${formatMiles(milesAtOrigination)} starting miles and ${formatMiles(annualMileage)} miles per year, bumper-to-bumper protection ends much sooner than most customers assume.`;
   }, [annualMileage, milesAtOrigination]);
 
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={(name) => {
-      setDealerName(name);
-      setIsAuthenticated(true);
-    }} />;
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!isMounted) return;
+      if (error) {
+        setAuthError(error.message);
+      }
+      setSession(data.session ?? null);
+      setAuthLoading(false);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!session || !supabase) {
+      setSnapshots([]);
+      setSnapshotName("");
+      setSnapshotError("");
+      setSnapshotMessage("");
+      setDealerName("Dealer Account");
+      return;
+    }
+
+    const loadAccountData = async () => {
+      setSnapshotsLoading(true);
+      setSnapshotError("");
+
+      const [{ data: profile, error: profileError }, { data: snapshotRows, error: snapshotsQueryError }] = await Promise.all([
+        supabase.from("profiles").select("dealer_name").eq("id", session.user.id).maybeSingle(),
+        supabase
+          .from("planner_snapshots")
+          .select("id, snapshot_name, vin, vehicle_year, make, model, vehicle_name, miles_at_origination, factory_years, factory_miles, powertrain_years, powertrain_miles, loan_term_months, annual_mileage, ownership_years, show_vsc_overlay, vsc_years, vsc_miles, created_at")
+          .order("created_at", { ascending: false })
+          .limit(12)
+      ]);
+
+      if (profileError) {
+        setAuthError(profileError.message);
+      } else {
+        setDealerName(profile?.dealer_name || String(session.user.user_metadata.dealer_name || "Dealer Account"));
+      }
+
+      if (snapshotsQueryError) {
+        setSnapshotError(snapshotsQueryError.message);
+      } else {
+        const nextSnapshots = (snapshotRows ?? []).map((row) => normalizeSnapshot(row as Record<string, unknown>));
+        setSnapshots(nextSnapshots);
+        setSnapshotName((current) => current || nextSnapshots[0]?.snapshot_name || "");
+      }
+
+      setSnapshotsLoading(false);
+    };
+
+    void loadAccountData();
+  }, [session, supabase]);
+
+  const handleAuthSubmit = async ({ email, password, dealerName: nextDealerName }: { email: string; password: string; dealerName: string }) => {
+    if (!supabase) return;
+
+    setAuthSubmitting(true);
+    setAuthError("");
+    setAuthMessage("");
+
+    if (authMode === "sign-in") {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        setAuthError(error.message);
+      }
+    } else {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            dealer_name: nextDealerName
+          }
+        }
+      });
+
+      if (error) {
+        setAuthError(error.message);
+      } else if (data.session) {
+        setAuthMessage("Account created. You are signed in.");
+      } else {
+        setAuthMode("sign-in");
+        setAuthMessage("Account created. Check your email to confirm the sign-up, then sign in.");
+      }
+    }
+
+    setAuthSubmitting(false);
+  };
+
+  const loadSnapshot = (snapshot: PlannerSnapshot) => {
+    setVin(snapshot.vin ?? "");
+    setSelectedYear(snapshot.vehicle_year);
+    setSelectedMake(snapshot.make);
+    setSelectedModel(snapshot.model);
+    setVehicleName(snapshot.vehicle_name);
+    setMilesAtOrigination(snapshot.miles_at_origination);
+    setFactoryYears(snapshot.factory_years);
+    setFactoryMiles(snapshot.factory_miles);
+    setPowertrainYears(snapshot.powertrain_years);
+    setPowertrainMiles(snapshot.powertrain_miles);
+    setLoanTermMonths(snapshot.loan_term_months);
+    setAnnualMileage(snapshot.annual_mileage);
+    setOwnershipYears(snapshot.ownership_years);
+    setShowVscOverlay(snapshot.show_vsc_overlay);
+    setVscYears(snapshot.vsc_years);
+    setVscMiles(snapshot.vsc_miles);
+    setSnapshotName(snapshot.snapshot_name);
+    setSnapshotMessage(`Loaded "${snapshot.snapshot_name}".`);
+    setSnapshotError("");
+  };
+
+  const refreshSnapshots = async () => {
+    if (!supabase || !session) return;
+
+    const { data, error } = await supabase
+      .from("planner_snapshots")
+      .select("id, snapshot_name, vin, vehicle_year, make, model, vehicle_name, miles_at_origination, factory_years, factory_miles, powertrain_years, powertrain_miles, loan_term_months, annual_mileage, ownership_years, show_vsc_overlay, vsc_years, vsc_miles, created_at")
+      .order("created_at", { ascending: false })
+      .limit(12);
+
+    if (error) {
+      setSnapshotError(error.message);
+      return;
+    }
+
+    setSnapshots((data ?? []).map((row) => normalizeSnapshot(row as Record<string, unknown>)));
+  };
+
+  const handleSaveSnapshot = async () => {
+    if (!supabase || !session) return;
+
+    const trimmedName = snapshotName.trim() || `${vehicleName} snapshot`;
+
+    setSaveLoading(true);
+    setSnapshotError("");
+    setSnapshotMessage("");
+
+    const { error } = await supabase.from("planner_snapshots").insert({
+      user_id: session.user.id,
+      snapshot_name: trimmedName,
+      vin: vin || null,
+      vehicle_year: selectedYear,
+      make: selectedMake,
+      model: selectedModel,
+      vehicle_name: vehicleName,
+      miles_at_origination: milesAtOrigination,
+      factory_years: factoryYears,
+      factory_miles: factoryMiles,
+      powertrain_years: powertrainYears,
+      powertrain_miles: powertrainMiles,
+      loan_term_months: loanTermMonths,
+      annual_mileage: annualMileage,
+      ownership_years: ownershipYears,
+      show_vsc_overlay: showVscOverlay,
+      vsc_years: vscYears,
+      vsc_miles: vscMiles
+    });
+
+    if (error) {
+      setSnapshotError(error.message);
+    } else {
+      setSnapshotName(trimmedName);
+      setSnapshotMessage(`Saved "${trimmedName}".`);
+      await refreshSnapshots();
+    }
+
+    setSaveLoading(false);
+  };
+
+  const handleDeleteSnapshot = async (snapshotId: string) => {
+    if (!supabase) return;
+
+    setSnapshotBusyId(snapshotId);
+    setSnapshotError("");
+    setSnapshotMessage("");
+
+    const { error } = await supabase.from("planner_snapshots").delete().eq("id", snapshotId);
+
+    if (error) {
+      setSnapshotError(error.message);
+    } else {
+      setSnapshotMessage("Snapshot deleted.");
+      await refreshSnapshots();
+    }
+
+    setSnapshotBusyId(null);
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setAuthMessage("");
+    setAuthError("");
+  };
+
+  if (authLoading) {
+    return <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-600">Loading account...</div>;
+  }
+
+  if (!session) {
+    return (
+      <LoginScreen
+        mode={authMode}
+        onModeChange={setAuthMode}
+        onSubmit={handleAuthSubmit}
+        isSubmitting={authSubmitting}
+        error={authError}
+        message={authMessage}
+        configError={supabase ? "" : "Missing Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."}
+      />
+    );
   }
 
   return (
@@ -862,6 +1191,52 @@ export default function DealerFactoryWarrantyPlanner() {
                 </div>
                 <p className="text-xs text-slate-500">This overlay shows how a service contract can reduce time spent outside full coverage.</p>
               </div>
+
+              <div className="rounded-2xl border border-slate-200 p-4 space-y-4 bg-white">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Saved Snapshots</Label>
+                  {snapshotsLoading ? <span className="text-xs text-slate-500">Loading...</span> : null}
+                </div>
+                <div className="space-y-2">
+                  <Label>Snapshot Name</Label>
+                  <Input value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} placeholder="Example: F-150 high-mileage buyer" />
+                </div>
+                {snapshotError ? <div className="text-sm text-red-600">{snapshotError}</div> : null}
+                {!snapshotError && snapshotMessage ? <div className="text-sm text-emerald-700">{snapshotMessage}</div> : null}
+                <button type="button" onClick={() => void handleSaveSnapshot()} disabled={saveLoading} className="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold hover:bg-slate-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
+                  {saveLoading ? "Saving..." : "Save Current Snapshot"}
+                </button>
+                <div className="space-y-3">
+                  {snapshots.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 p-3 text-sm text-slate-500">No saved snapshots yet.</div>
+                  ) : (
+                    snapshots.map((snapshot) => (
+                      <div key={snapshot.id} className="rounded-xl border border-slate-200 p-3 bg-slate-50 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-medium text-slate-900">{snapshot.snapshot_name}</div>
+                            <div className="text-xs text-slate-500">{snapshot.vehicle_name}</div>
+                            <div className="text-xs text-slate-400">{formatSnapshotDate(snapshot.created_at)}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => loadSnapshot(snapshot)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100">
+                              Load
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteSnapshot(snapshot.id)}
+                              disabled={snapshotBusyId === snapshot.id}
+                              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {snapshotBusyId === snapshot.id ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -881,7 +1256,7 @@ export default function DealerFactoryWarrantyPlanner() {
                     {limitedCoverages.length > 0 ? <Badge className="rounded-full">Limited electronics coverage applies</Badge> : null}
                     {showVscOverlay ? <Badge className="rounded-full">VSC {vscYears} yr / {formatMiles(vscMiles)} mi</Badge> : null}
                     <Badge className="rounded-full">Loan {formatYears(derived.loanYears)} yrs</Badge>
-                    <button type="button" onClick={() => setIsAuthenticated(false)} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Log Out</button>
+                    <button type="button" onClick={() => void handleSignOut()} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Log Out</button>
                   </div>
                 </div>
               </CardHeader>
