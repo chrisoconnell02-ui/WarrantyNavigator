@@ -108,13 +108,12 @@ body {
     margin-top: 0 !important;
   }
 
-  .printable-card [class*="CardHeader"],
-  .printable-card [class*="CardContent"],
-  .print-summary-card [class*="CardContent"],
-  .print-ack-card [class*="CardHeader"],
-  .print-ack-card [class*="CardContent"] {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+  .print-pad-none {
+    padding: 0 !important;
+  }
+
+  .print-header-tight {
+    padding: 0 0 0.35rem 0 !important;
   }
 
   .timeline-track,
