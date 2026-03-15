@@ -464,12 +464,13 @@ function assignMarkerLanes(markers: TimelineMarker[], minGap = 12): Array<Timeli
 }
 
 function Marker({ left, label, sublabel, color = "bg-black", lane = 0 }: MarkerProps) {
-  const lineHeight = 16 + lane * 22;
-  const labelTop = 70 + lane * 22;
+  const lineHeight = 10 + lane * 22;
+  const lineTop = 32;
+  const labelTop = lineTop + lineHeight + 4;
 
   return (
-    <div className="timeline-marker absolute top-[-10px]" style={{ left: `${left}%` }}>
-      <div className={`timeline-marker-line w-0.5 ${color} opacity-80`} style={{ height: `${lineHeight}px` }} />
+    <div className="timeline-marker absolute top-0 h-full" style={{ left: `${left}%` }}>
+      <div className={`timeline-marker-line absolute w-0.5 ${color} opacity-80`} style={{ top: `${lineTop}px`, height: `${lineHeight}px` }} />
       <div className="timeline-marker-label absolute -translate-x-1/2 text-center" style={{ top: `${labelTop}px` }}>
         <div className="text-xs font-semibold text-slate-900 whitespace-nowrap">{label}</div>
         {sublabel ? <div className="text-[11px] text-slate-500 whitespace-nowrap">{sublabel}</div> : null}
