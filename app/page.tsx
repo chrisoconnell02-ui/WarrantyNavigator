@@ -440,7 +440,7 @@ function Marker({ left, label, sublabel, color = "bg-black" }: MarkerProps) {
   return (
     <div className="absolute top-[-10px]" style={{ left: `${left}%` }}>
       <div className={`w-0.5 h-16 ${color} opacity-80`} />
-      <div className="absolute top-16 -translate-x-1/2 mt-2 text-center">
+      <div className="absolute top-[58px] -translate-x-1/2 text-center">
         <div className="text-xs font-semibold text-slate-900 whitespace-nowrap">{label}</div>
         {sublabel ? <div className="text-[11px] text-slate-500 whitespace-nowrap">{sublabel}</div> : null}
       </div>
@@ -687,7 +687,7 @@ export default function DealerFactoryWarrantyPlanner() {
   const [selectedMake, setSelectedMake] = useState<string>(initialMake);
   const [selectedModel, setSelectedModel] = useState<string>(initialModel);
   const [vehicleName, setVehicleName] = useState(`${initialYear} ${initialMake} ${MODEL_LABELS[initialModel] || initialModel}`.trim());
-  const [milesAtOrigination, setMilesAtOrigination] = useState<number>(12000);
+  const [milesAtOrigination, setMilesAtOrigination] = useState<number>(1);
   const [factoryYears, setFactoryYears] = useState<number>(3);
   const [factoryMiles, setFactoryMiles] = useState<number>(36000);
   const [powertrainYears, setPowertrainYears] = useState<number>(5);
@@ -1306,7 +1306,7 @@ export default function DealerFactoryWarrantyPlanner() {
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
                   <div className="flex items-center gap-2 mb-6"><Car className="w-5 h-5" /><h2 className="text-lg font-semibold">Coverage Timeline</h2></div>
-                  <div className="space-y-12 pt-4 pb-16">
+                  <div className="space-y-16 pt-4 pb-16">
                     <div>
                       <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Factory Bumper-to-Bumper</span><span>{formatYears(derived.bumperToBumperActualYears)} years of real-world coverage</span></div>
                       <div className="relative h-8 rounded-xl bg-slate-100 overflow-visible">
