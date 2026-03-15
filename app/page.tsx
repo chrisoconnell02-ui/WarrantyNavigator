@@ -440,7 +440,7 @@ function Marker({ left, label, sublabel, color = "bg-black" }: MarkerProps) {
   return (
     <div className="absolute top-[-10px]" style={{ left: `${left}%` }}>
       <div className={`w-0.5 h-16 ${color} opacity-80`} />
-      <div className="absolute top-[58px] -translate-x-1/2 text-center">
+      <div className="absolute top-[70px] -translate-x-1/2 text-center">
         <div className="text-xs font-semibold text-slate-900 whitespace-nowrap">{label}</div>
         {sublabel ? <div className="text-[11px] text-slate-500 whitespace-nowrap">{sublabel}</div> : null}
       </div>
