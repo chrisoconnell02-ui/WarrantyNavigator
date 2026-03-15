@@ -1188,7 +1188,7 @@ export default function DealerFactoryWarrantyPlanner() {
               <p className="text-sm text-slate-500">Built for dealership conversations. Adjust the numbers and let the timeline do the selling.</p>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="rounded-2xl border border-slate-200 p-4 space-y-3 bg-slate-50">
+              <div className="hidden rounded-2xl border border-slate-200 p-4 space-y-3 bg-slate-50">
                 <div className="flex items-center gap-2">
                   <ScanLine className="w-4 h-4" />
                   <Label className="text-sm font-semibold">VIN Decoder</Label>
