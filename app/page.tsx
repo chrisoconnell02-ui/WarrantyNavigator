@@ -635,7 +635,7 @@ function LoginScreen({ mode, onModeChange, onSubmit, isSubmitting, error, messag
         <Card className="rounded-3xl border-slate-200 shadow-sm bg-white">
           <CardHeader>
             <CardTitle className="text-2xl">Dealer Login</CardTitle>
-            <p className="text-sm text-slate-500">Sign in with Supabase email auth, or create a dealer account and save warranty scenarios.</p>
+            <p className="text-sm text-slate-500">Sign in with your email, or create a dealer account and save warranty scenarios.</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
