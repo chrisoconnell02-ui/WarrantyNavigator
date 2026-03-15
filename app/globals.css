@@ -34,6 +34,8 @@ body {
 @media print {
   body {
     background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .no-print {
@@ -59,5 +61,26 @@ body {
 
   .print-page-break-avoid {
     break-inside: avoid;
+  }
+
+  .timeline-track,
+  .timeline-segment,
+  .timeline-marker-line {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .timeline-track {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1;
+    overflow: visible !important;
+  }
+
+  .timeline-segment {
+    border: 1px solid rgba(15, 23, 42, 0.14);
+  }
+
+  .timeline-marker-label {
+    background: #ffffff;
   }
 }

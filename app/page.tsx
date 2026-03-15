@@ -421,7 +421,7 @@ function Segment({ left, width, label, tone = "bg-slate-300", textTone = "text-s
 
   return (
     <div
-      className={`absolute top-0 h-full rounded-xl ${tone} ${textTone} flex items-center justify-center text-[10px] md:text-xs font-semibold px-2 text-center overflow-hidden`}
+      className={`timeline-segment absolute top-0 h-full rounded-xl ${tone} ${textTone} flex items-center justify-center text-[10px] md:text-xs font-semibold px-2 text-center overflow-hidden`}
       style={{ left: `${left}%`, width: `${safeWidth}%` }}
     >
       <span className="truncate">{label}</span>
@@ -438,9 +438,9 @@ type MarkerProps = {
 
 function Marker({ left, label, sublabel, color = "bg-black" }: MarkerProps) {
   return (
-    <div className="absolute top-[-10px]" style={{ left: `${left}%` }}>
-      <div className={`w-0.5 h-16 ${color} opacity-80`} />
-      <div className="absolute top-[70px] -translate-x-1/2 text-center">
+    <div className="timeline-marker absolute top-[-10px]" style={{ left: `${left}%` }}>
+      <div className={`timeline-marker-line w-0.5 h-16 ${color} opacity-80`} />
+      <div className="timeline-marker-label absolute top-[70px] -translate-x-1/2 text-center">
         <div className="text-xs font-semibold text-slate-900 whitespace-nowrap">{label}</div>
         {sublabel ? <div className="text-[11px] text-slate-500 whitespace-nowrap">{sublabel}</div> : null}
       </div>
@@ -695,7 +695,7 @@ export default function DealerFactoryWarrantyPlanner() {
   const [loanTermMonths, setLoanTermMonths] = useState<number>(72);
   const [annualMileage, setAnnualMileage] = useState<number>(18000);
   const [ownershipYears, setOwnershipYears] = useState<number>(5);
-  const [showVscOverlay, setShowVscOverlay] = useState<boolean>(true);
+  const [showVscOverlay, setShowVscOverlay] = useState<boolean>(false);
   const [vscYears, setVscYears] = useState<number>(5);
   const [vscMiles, setVscMiles] = useState<number>(75000);
   const [dealerName, setDealerName] = useState<string>("Dealer Account");
@@ -1309,7 +1309,7 @@ export default function DealerFactoryWarrantyPlanner() {
                   <div className="space-y-16 pt-4 pb-16">
                     <div>
                       <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Factory Bumper-to-Bumper</span><span>{formatYears(derived.bumperToBumperActualYears)} years of real-world coverage</span></div>
-                      <div className="relative h-8 rounded-xl bg-slate-100 overflow-visible">
+                      <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(derived.bumperToBumperActualYears)} label="Covered" tone="bg-emerald-300" textTone="text-emerald-950" />
                         <Segment left={pct(derived.bumperToBumperActualYears)} width={pct(ownershipYears - derived.bumperToBumperActualYears)} label="Ownership without factory coverage" tone="bg-rose-200" textTone="text-rose-950" />
                         {showVscOverlay && derived.protectedYearsWithVsc > derived.bumperToBumperActualYears ? <Segment left={pct(derived.bumperToBumperActualYears)} width={pct(derived.protectedYearsWithVsc - derived.bumperToBumperActualYears)} label="VSC protection" tone="bg-indigo-300" textTone="text-indigo-950" /> : null}
@@ -1322,7 +1322,7 @@ export default function DealerFactoryWarrantyPlanner() {
 
                     <div>
                       <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Powertrain Coverage</span><span>{formatYears(derived.powertrainActualYears)} years of real-world coverage</span></div>
-                      <div className="relative h-8 rounded-xl bg-slate-100 overflow-visible">
+                      <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(derived.powertrainActualYears)} label="Covered" tone="bg-sky-300" textTone="text-sky-950" />
                         <Segment left={pct(derived.powertrainActualYears)} width={pct(ownershipYears - derived.powertrainActualYears)} label="Ownership after powertrain expires" tone="bg-amber-200" textTone="text-amber-950" />
                         <Marker left={pct(derived.powertrainActualYears)} label="Coverage ends" sublabel={`${formatYears(derived.powertrainActualYears)} yrs`} color="bg-sky-700" />
@@ -1333,7 +1333,7 @@ export default function DealerFactoryWarrantyPlanner() {
 
                     <div>
                       <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Customer Ownership vs Loan</span><span>{ownershipYears >= derived.loanYears ? "Ownership outlasts financing" : "Loan outlasts expected ownership"}</span></div>
-                      <div className="relative h-8 rounded-xl bg-slate-100 overflow-visible">
+                      <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(Math.min(ownershipYears, derived.loanYears))} label="Ownership while paying loan" tone="bg-violet-300" textTone="text-violet-950" />
                         {ownershipYears > derived.loanYears ? <Segment left={pct(derived.loanYears)} width={pct(ownershipYears - derived.loanYears)} label="Owned after payoff" tone="bg-violet-200" textTone="text-violet-950" /> : <Segment left={pct(ownershipYears)} width={pct(derived.loanYears - ownershipYears)} label="Loan remains after expected ownership" tone="bg-orange-200" textTone="text-orange-950" />}
                         <Marker left={pct(ownershipYears)} label="Ownership target" sublabel={`${ownershipYears} yrs`} color="bg-slate-700" />
