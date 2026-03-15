@@ -1402,22 +1402,22 @@ export default function DealerFactoryWarrantyPlanner() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-8">
-                <div className="grid gap-4 md:grid-cols-4">
-                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white"><CardContent className="p-4"><div className="text-xs uppercase tracking-wide text-slate-500">Factory coverage lasts</div><div className="text-2xl font-bold mt-1">{formatYears(derived.bumperToBumperActualYears)} yrs</div><div className="text-sm text-slate-500 mt-1">Ends by {derived.bumperEndsBy}</div></CardContent></Card>
-                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white"><CardContent className="p-4"><div className="text-xs uppercase tracking-wide text-slate-500">Powertrain lasts</div><div className="text-2xl font-bold mt-1">{formatYears(derived.powertrainActualYears)} yrs</div><div className="text-sm text-slate-500 mt-1">Ends by {derived.powertrainEndsBy}</div></CardContent></Card>
-                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white"><CardContent className="p-4"><div className="text-xs uppercase tracking-wide text-slate-500">Risk out of warranty during ownership</div><div className="text-2xl font-bold mt-1">{formatPercent(derived.ownershipOutOfWarrantyRisk)}</div><div className="text-sm text-slate-500 mt-1">{formatYears(derived.bumperGapYears)} yrs exposed</div></CardContent></Card>
-                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white"><CardContent className="p-4"><div className="text-xs uppercase tracking-wide text-slate-500">Risk during loan period</div><div className="text-2xl font-bold mt-1">{formatPercent(derived.loanOutOfWarrantyRisk)}</div><div className="text-sm text-slate-500 mt-1">{formatYears(derived.loanAfterBumperGap)} yrs while financed</div></CardContent></Card>
+              <CardContent className="space-y-8 print-space-y-4">
+                <div className="grid gap-4 md:grid-cols-4 print-summary-grid">
+                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-summary-card"><CardContent className="p-4 print-summary-card-content"><div className="text-xs uppercase tracking-wide text-slate-500">Factory coverage lasts</div><div className="text-2xl font-bold mt-1 print-summary-value">{formatYears(derived.bumperToBumperActualYears)} yrs</div><div className="text-sm text-slate-500 mt-1">Ends by {derived.bumperEndsBy}</div></CardContent></Card>
+                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-summary-card"><CardContent className="p-4 print-summary-card-content"><div className="text-xs uppercase tracking-wide text-slate-500">Powertrain lasts</div><div className="text-2xl font-bold mt-1 print-summary-value">{formatYears(derived.powertrainActualYears)} yrs</div><div className="text-sm text-slate-500 mt-1">Ends by {derived.powertrainEndsBy}</div></CardContent></Card>
+                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-summary-card"><CardContent className="p-4 print-summary-card-content"><div className="text-xs uppercase tracking-wide text-slate-500">Risk during ownership</div><div className="text-2xl font-bold mt-1 print-summary-value">{formatPercent(derived.ownershipOutOfWarrantyRisk)}</div><div className="text-sm text-slate-500 mt-1">{formatYears(derived.bumperGapYears)} yrs exposed</div></CardContent></Card>
+                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-summary-card"><CardContent className="p-4 print-summary-card-content"><div className="text-xs uppercase tracking-wide text-slate-500">Risk during loan period</div><div className="text-2xl font-bold mt-1 print-summary-value">{formatPercent(derived.loanOutOfWarrantyRisk)}</div><div className="text-sm text-slate-500 mt-1">{formatYears(derived.loanAfterBumperGap)} yrs while financed</div></CardContent></Card>
                 </div>
 
                 {showVscOverlay ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Card className="rounded-2xl border-slate-200 shadow-none bg-emerald-50"><CardContent className="p-4"><div className="text-xs uppercase tracking-wide text-slate-500">Ownership risk with VSC</div><div className="text-2xl font-bold mt-1">{formatPercent(derived.ownershipRiskWithVsc)}</div><div className="text-sm text-slate-500 mt-1">Improves by {formatPercent(derived.ownershipOutOfWarrantyRisk - derived.ownershipRiskWithVsc)}</div></CardContent></Card>
-                    <Card className="rounded-2xl border-slate-200 shadow-none bg-sky-50"><CardContent className="p-4"><div className="text-xs uppercase tracking-wide text-slate-500">Loan risk with VSC</div><div className="text-2xl font-bold mt-1">{formatPercent(derived.loanRiskWithVsc)}</div><div className="text-sm text-slate-500 mt-1">Improves by {formatPercent(derived.loanOutOfWarrantyRisk - derived.loanRiskWithVsc)}</div></CardContent></Card>
+                  <div className="grid gap-4 md:grid-cols-2 print-summary-grid">
+                    <Card className="rounded-2xl border-slate-200 shadow-none bg-emerald-50 print-summary-card"><CardContent className="p-4 print-summary-card-content"><div className="text-xs uppercase tracking-wide text-slate-500">Ownership risk with VSC</div><div className="text-2xl font-bold mt-1 print-summary-value">{formatPercent(derived.ownershipRiskWithVsc)}</div><div className="text-sm text-slate-500 mt-1">Improves by {formatPercent(derived.ownershipOutOfWarrantyRisk - derived.ownershipRiskWithVsc)}</div></CardContent></Card>
+                    <Card className="rounded-2xl border-slate-200 shadow-none bg-sky-50 print-summary-card"><CardContent className="p-4 print-summary-card-content"><div className="text-xs uppercase tracking-wide text-slate-500">Loan risk with VSC</div><div className="text-2xl font-bold mt-1 print-summary-value">{formatPercent(derived.loanRiskWithVsc)}</div><div className="text-sm text-slate-500 mt-1">Improves by {formatPercent(derived.loanOutOfWarrantyRisk - derived.loanRiskWithVsc)}</div></CardContent></Card>
                   </div>
                 ) : null}
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6 no-print">
                   <div className="flex items-center gap-2 mb-6"><Car className="w-5 h-5" /><h2 className="text-lg font-semibold">Coverage Timeline</h2></div>
                   <div className="space-y-16 pt-4 pb-24">
                     <div>
@@ -1477,33 +1477,37 @@ export default function DealerFactoryWarrantyPlanner() {
                   </Card>
                 </div>
 
-                <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-page-break-avoid">
+                <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-page-break-avoid print-ack-card">
                   <CardHeader>
                     <CardTitle className="text-lg">Acknowledgement</CardTitle>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 no-print">
                       Customer acknowledgement of the warranty coverage and ownership timeline reviewed during this presentation.
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-6 text-sm text-slate-700">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 leading-6">
+                  <CardContent className="space-y-6 text-sm text-slate-700 print-ack-content">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 leading-6 no-print">
                       I acknowledge that the warranty timeline, ownership assumptions, and coverage gaps shown in this snapshot were reviewed with me.
                     </div>
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <div className="text-xs uppercase tracking-wide text-slate-500">Customer Signature</div>
-                        <div className="h-16 border-b border-slate-400" />
+                    <div className="space-y-4 print-ack-lines">
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <div className="text-xs uppercase tracking-wide text-slate-500">Customer Signature</div>
+                          <div className="h-8 border-b border-slate-400" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-xs uppercase tracking-wide text-slate-500">Date</div>
+                          <div className="h-8 border-b border-slate-400" />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="text-xs uppercase tracking-wide text-slate-500">Date</div>
-                        <div className="h-16 border-b border-slate-400" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-xs uppercase tracking-wide text-slate-500">Printed Name</div>
-                        <div className="h-12 border-b border-slate-400" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-xs uppercase tracking-wide text-slate-500">Dealership Representative</div>
-                        <div className="h-12 border-b border-slate-400" />
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <div className="text-xs uppercase tracking-wide text-slate-500">Printed Name</div>
+                          <div className="h-8 border-b border-slate-400" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-xs uppercase tracking-wide text-slate-500">Dealership Representative</div>
+                          <div className="h-8 border-b border-slate-400" />
+                        </div>
                       </div>
                     </div>
                   </CardContent>

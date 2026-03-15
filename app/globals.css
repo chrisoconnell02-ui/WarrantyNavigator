@@ -63,6 +63,42 @@ body {
     break-inside: avoid;
   }
 
+  .print-space-y-4 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  .print-summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem !important;
+  }
+
+  .print-summary-card {
+    break-inside: avoid;
+    border-radius: 0.75rem !important;
+  }
+
+  .print-summary-card-content {
+    padding: 0.65rem !important;
+  }
+
+  .print-summary-value {
+    font-size: 1.1rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-ack-card {
+    margin-top: 0.5rem !important;
+  }
+
+  .print-ack-content {
+    padding-top: 0.5rem !important;
+  }
+
+  .print-ack-lines {
+    margin-top: 0 !important;
+  }
+
   .timeline-track,
   .timeline-segment,
   .timeline-marker-line {
