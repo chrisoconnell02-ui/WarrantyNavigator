@@ -69,6 +69,10 @@ body {
     margin-top: 1rem !important;
   }
 
+  .print-space-y-2 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
   .print-summary-grid {
     display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -108,12 +112,32 @@ body {
     margin-top: 0 !important;
   }
 
+  .print-ack-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem !important;
+  }
+
   .print-pad-none {
     padding: 0 !important;
   }
 
   .print-header-tight {
     padding: 0 0 0.35rem 0 !important;
+  }
+
+  .print-summary-section {
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .print-summary-detail {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
   }
 
   .timeline-track,

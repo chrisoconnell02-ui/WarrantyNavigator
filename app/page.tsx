@@ -1457,22 +1457,22 @@ export default function DealerFactoryWarrantyPlanner() {
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-1">
-                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white">
-                    <CardHeader><CardTitle className="text-lg">Warranty Summary vs Life Cycle</CardTitle></CardHeader>
-                    <CardContent className="space-y-4 text-sm leading-6 text-slate-700">
+                  <Card className="rounded-2xl border-slate-200 shadow-none bg-white print-summary-section">
+                    <CardHeader className="print-pad-none print-header-tight"><CardTitle className="text-lg">Warranty Summary vs Life Cycle</CardTitle></CardHeader>
+                    <CardContent className="space-y-4 text-sm leading-6 text-slate-700 print-pad-none print-space-y-2">
                       <p>{customerMessage}</p>
-                      <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+                      <div className="rounded-xl border border-slate-200 p-4 bg-slate-50 print-summary-detail">
                         <h3 className="font-semibold mb-1">Loan Life Cycle vs Warranty Coverage</h3>
                         <p>The customer is financing this vehicle for <strong>{formatYears(derived.loanYears)} years</strong>. Based on their driving habits and the vehicle&apos;s starting mileage, the factory bumper-to-bumper warranty realistically lasts about <strong>{formatYears(derived.bumperToBumperActualYears)} years</strong>.</p>
                         <p>That means roughly <strong>{formatYears(derived.loanAfterBumperGap)} years</strong> of the loan could occur after full factory coverage expires. During that period the customer may still be making payments while the vehicle is no longer protected by the original warranty.</p>
                       </div>
-                      <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+                      <div className="rounded-xl border border-slate-200 p-4 bg-slate-50 print-summary-detail">
                         <h3 className="font-semibold mb-1">Ownership Life Cycle vs Warranty Coverage</h3>
                         <p>The typical ownership window entered is <strong>{ownershipYears} years</strong>. With the current mileage and driving habits, the comprehensive factory coverage realistically protects the vehicle for about <strong>{formatYears(derived.bumperToBumperActualYears)} years</strong>.</p>
                         <p>That leaves approximately <strong>{formatYears(derived.bumperGapYears)} years</strong> of expected ownership after the factory warranty expires. This is the period where most unexpected repair costs tend to occur because the vehicle is aging but no longer protected by the manufacturer.</p>
                       </div>
-                      {limitedCoverages.length > 0 ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-950"><strong>Important factory warranty note:</strong> some components on this vehicle may have shorter OEM coverage than the main basic warranty. Electronics like audio, navigation, infotainment, or similar items may expire earlier.</div> : null}
-                      {showVscOverlay ? <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3">Adding the service contract overlay reduces the ownership risk from <strong>{formatPercent(derived.ownershipOutOfWarrantyRisk)}</strong> to <strong>{formatPercent(derived.ownershipRiskWithVsc)}</strong> and reduces the loan-period exposure as well.</div> : null}
+                      {limitedCoverages.length > 0 ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-950 print-summary-detail"><strong>Important factory warranty note:</strong> some components on this vehicle may have shorter OEM coverage than the main basic warranty. Electronics like audio, navigation, infotainment, or similar items may expire earlier.</div> : null}
+                      {showVscOverlay ? <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 print-summary-detail">Adding the service contract overlay reduces the ownership risk from <strong>{formatPercent(derived.ownershipOutOfWarrantyRisk)}</strong> to <strong>{formatPercent(derived.ownershipRiskWithVsc)}</strong> and reduces the loan-period exposure as well.</div> : null}
                     </CardContent>
                   </Card>
                 </div>
@@ -1489,7 +1489,7 @@ export default function DealerFactoryWarrantyPlanner() {
                       I acknowledge that the warranty timeline, ownership assumptions, and coverage gaps shown in this snapshot were reviewed with me.
                     </div>
                     <div className="space-y-4 print-ack-lines">
-                      <div className="grid gap-6 md:grid-cols-2">
+                      <div className="grid gap-6 md:grid-cols-2 print-ack-grid">
                         <div className="space-y-2">
                           <div className="text-xs uppercase tracking-wide text-slate-500">Customer Signature</div>
                           <div className="h-8 border-b border-slate-400" />
@@ -1499,7 +1499,7 @@ export default function DealerFactoryWarrantyPlanner() {
                           <div className="h-8 border-b border-slate-400" />
                         </div>
                       </div>
-                      <div className="grid gap-6 md:grid-cols-2">
+                      <div className="grid gap-6 md:grid-cols-2 print-ack-grid">
                         <div className="space-y-2">
                           <div className="text-xs uppercase tracking-wide text-slate-500">Printed Name</div>
                           <div className="h-8 border-b border-slate-400" />
