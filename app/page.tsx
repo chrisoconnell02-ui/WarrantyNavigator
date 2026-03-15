@@ -639,10 +639,12 @@ function LoginScreen({ mode, onModeChange, onSubmit, isSubmitting, error, messag
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Dealer Group Name</Label>
-                <Input value={dealerName} onChange={(e) => setDealerName(e.target.value)} placeholder="Dealer group" disabled={mode === "sign-in"} />
-              </div>
+              {mode === "sign-up" ? (
+                <div className="space-y-2">
+                  <Label>Dealer Group Name</Label>
+                  <Input value={dealerName} onChange={(e) => setDealerName(e.target.value)} placeholder="Dealer group" />
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@dealership.com" type="email" />
