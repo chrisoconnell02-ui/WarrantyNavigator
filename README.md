@@ -13,13 +13,13 @@ Deploy this folder as a `Next.js` project. In Vercel, leave the `Output Director
 
 ## Supabase setup
 
-This app now uses Supabase for email authentication and saved planner snapshots. The database schema is included in [supabase/schema.sql](/c:/Users/walki/OneDrive/Desktop/Save%20Me/chris-project/attachments/WarrantyNavigator/supabase/schema.sql).
+This app now uses Supabase for email authentication and saved planner snapshots. The database schema is included in `supabase/schema.sql`.
 
 Recommended setup:
 
 1. Create a new Supabase project.
 2. In the Supabase dashboard, open `SQL Editor`.
-3. Run the SQL from [supabase/schema.sql](/c:/Users/walki/OneDrive/Desktop/Save%20Me/chris-project/attachments/WarrantyNavigator/supabase/schema.sql).
+3. Run the SQL from `supabase/schema.sql`.
 4. In `Authentication -> Providers`, keep `Email` enabled.
 5. Copy `.env.example` to `.env.local` and set:
    - `NEXT_PUBLIC_SUPABASE_URL`
