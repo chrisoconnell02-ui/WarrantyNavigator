@@ -1185,7 +1185,6 @@ export default function DealerFactoryWarrantyPlanner() {
                 <ShieldCheck className="w-5 h-5" />
                 Warranty Planner
               </CardTitle>
-              <p className="text-sm text-slate-500">Built for dealership conversations. Adjust the numbers and let the timeline do the selling.</p>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="hidden rounded-2xl border border-slate-200 p-4 space-y-3 bg-slate-50">
