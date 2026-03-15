@@ -434,13 +434,43 @@ type MarkerProps = {
   label: string;
   sublabel?: string;
   color?: string;
+  lane?: number;
 };
 
-function Marker({ left, label, sublabel, color = "bg-black" }: MarkerProps) {
+type TimelineMarker = {
+  left: number;
+  label: string;
+  sublabel?: string;
+  color?: string;
+};
+
+function assignMarkerLanes(markers: TimelineMarker[], minGap = 12): Array<TimelineMarker & { lane: number }> {
+  const laneRightEdges: number[] = [];
+
+  return markers.map((marker) => {
+    let lane = 0;
+
+    while (laneRightEdges[lane] !== undefined && marker.left - laneRightEdges[lane] < minGap) {
+      lane += 1;
+    }
+
+    laneRightEdges[lane] = marker.left;
+
+    return {
+      ...marker,
+      lane
+    };
+  });
+}
+
+function Marker({ left, label, sublabel, color = "bg-black", lane = 0 }: MarkerProps) {
+  const lineHeight = 16 + lane * 22;
+  const labelTop = 70 + lane * 22;
+
   return (
     <div className="timeline-marker absolute top-[-10px]" style={{ left: `${left}%` }}>
-      <div className={`timeline-marker-line w-0.5 h-16 ${color} opacity-80`} />
-      <div className="timeline-marker-label absolute top-[70px] -translate-x-1/2 text-center">
+      <div className={`timeline-marker-line w-0.5 ${color} opacity-80`} style={{ height: `${lineHeight}px` }} />
+      <div className="timeline-marker-label absolute -translate-x-1/2 text-center" style={{ top: `${labelTop}px` }}>
         <div className="text-xs font-semibold text-slate-900 whitespace-nowrap">{label}</div>
         {sublabel ? <div className="text-[11px] text-slate-500 whitespace-nowrap">{sublabel}</div> : null}
       </div>
@@ -788,6 +818,88 @@ export default function DealerFactoryWarrantyPlanner() {
 
   const pct = (years: number) => clamp((years / derived.maxTimelineYears) * 100, 0, 100);
   const vinDecoded = useMemo(() => decodeVin(vin), [vin]);
+  const bumperMarkers = useMemo(
+    () =>
+      assignMarkerLanes(
+        [
+          {
+            left: pct(derived.bumperToBumperActualYears),
+            label: "Warranty ends",
+            sublabel: `${formatYears(derived.bumperToBumperActualYears)} yrs`,
+            color: "bg-emerald-700"
+          },
+          ...(showVscOverlay && derived.protectedYearsWithVsc > derived.bumperToBumperActualYears
+            ? [
+                {
+                  left: pct(derived.protectedYearsWithVsc),
+                  label: "VSC ends",
+                  sublabel: `${formatYears(derived.protectedYearsWithVsc)} yrs`,
+                  color: "bg-indigo-700"
+                }
+              ]
+            : []),
+          {
+            left: pct(ownershipYears),
+            label: "Ownership target",
+            sublabel: `${ownershipYears} yrs`,
+            color: "bg-slate-700"
+          },
+          {
+            left: pct(derived.loanYears),
+            label: "Loan ends",
+            sublabel: `${formatYears(derived.loanYears)} yrs`,
+            color: "bg-blue-700"
+          }
+        ].sort((a, b) => a.left - b.left)
+      ),
+    [derived.bumperToBumperActualYears, derived.loanYears, derived.protectedYearsWithVsc, ownershipYears, pct, showVscOverlay]
+  );
+  const powertrainMarkers = useMemo(
+    () =>
+      assignMarkerLanes(
+        [
+          {
+            left: pct(derived.powertrainActualYears),
+            label: "Coverage ends",
+            sublabel: `${formatYears(derived.powertrainActualYears)} yrs`,
+            color: "bg-sky-700"
+          },
+          {
+            left: pct(ownershipYears),
+            label: "Ownership target",
+            sublabel: `${ownershipYears} yrs`,
+            color: "bg-slate-700"
+          },
+          {
+            left: pct(derived.loanYears),
+            label: "Loan ends",
+            sublabel: `${formatYears(derived.loanYears)} yrs`,
+            color: "bg-blue-700"
+          }
+        ].sort((a, b) => a.left - b.left)
+      ),
+    [derived.loanYears, derived.powertrainActualYears, ownershipYears, pct]
+  );
+  const ownershipMarkers = useMemo(
+    () =>
+      assignMarkerLanes(
+        [
+          {
+            left: pct(ownershipYears),
+            label: "Ownership target",
+            sublabel: `${ownershipYears} yrs`,
+            color: "bg-slate-700"
+          },
+          {
+            left: pct(derived.loanYears),
+            label: "Loan ends",
+            sublabel: `${formatYears(derived.loanYears)} yrs`,
+            color: "bg-blue-700"
+          }
+        ].sort((a, b) => a.left - b.left)
+      ),
+    [derived.loanYears, ownershipYears, pct]
+  );
 
   const customerMessage = useMemo(() => {
     if (milesAtOrigination > 0 && annualMileage >= 20000) {
@@ -1306,17 +1418,16 @@ export default function DealerFactoryWarrantyPlanner() {
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
                   <div className="flex items-center gap-2 mb-6"><Car className="w-5 h-5" /><h2 className="text-lg font-semibold">Coverage Timeline</h2></div>
-                  <div className="space-y-16 pt-4 pb-16">
+                  <div className="space-y-16 pt-4 pb-24">
                     <div>
                       <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Factory Bumper-to-Bumper</span><span>{formatYears(derived.bumperToBumperActualYears)} years of real-world coverage</span></div>
                       <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(derived.bumperToBumperActualYears)} label="Covered" tone="bg-emerald-300" textTone="text-emerald-950" />
                         <Segment left={pct(derived.bumperToBumperActualYears)} width={pct(ownershipYears - derived.bumperToBumperActualYears)} label="Ownership without factory coverage" tone="bg-rose-200" textTone="text-rose-950" />
                         {showVscOverlay && derived.protectedYearsWithVsc > derived.bumperToBumperActualYears ? <Segment left={pct(derived.bumperToBumperActualYears)} width={pct(derived.protectedYearsWithVsc - derived.bumperToBumperActualYears)} label="VSC protection" tone="bg-indigo-300" textTone="text-indigo-950" /> : null}
-                        <Marker left={pct(derived.bumperToBumperActualYears)} label="Warranty ends" sublabel={`${formatYears(derived.bumperToBumperActualYears)} yrs`} color="bg-emerald-700" />
-                        {showVscOverlay && derived.protectedYearsWithVsc > derived.bumperToBumperActualYears ? <Marker left={pct(derived.protectedYearsWithVsc)} label="VSC ends" sublabel={`${formatYears(derived.protectedYearsWithVsc)} yrs`} color="bg-indigo-700" /> : null}
-                        <Marker left={pct(ownershipYears)} label="Ownership target" sublabel={`${ownershipYears} yrs`} color="bg-slate-700" />
-                        <Marker left={pct(derived.loanYears)} label="Loan ends" sublabel={`${formatYears(derived.loanYears)} yrs`} color="bg-blue-700" />
+                        {bumperMarkers.map((marker) => (
+                          <Marker key={`${marker.label}-${marker.left}`} left={marker.left} label={marker.label} sublabel={marker.sublabel} color={marker.color} lane={marker.lane} />
+                        ))}
                       </div>
                     </div>
 
@@ -1325,9 +1436,9 @@ export default function DealerFactoryWarrantyPlanner() {
                       <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(derived.powertrainActualYears)} label="Covered" tone="bg-sky-300" textTone="text-sky-950" />
                         <Segment left={pct(derived.powertrainActualYears)} width={pct(ownershipYears - derived.powertrainActualYears)} label="Ownership after powertrain expires" tone="bg-amber-200" textTone="text-amber-950" />
-                        <Marker left={pct(derived.powertrainActualYears)} label="Coverage ends" sublabel={`${formatYears(derived.powertrainActualYears)} yrs`} color="bg-sky-700" />
-                        <Marker left={pct(ownershipYears)} label="Ownership target" sublabel={`${ownershipYears} yrs`} color="bg-slate-700" />
-                        <Marker left={pct(derived.loanYears)} label="Loan ends" sublabel={`${formatYears(derived.loanYears)} yrs`} color="bg-blue-700" />
+                        {powertrainMarkers.map((marker) => (
+                          <Marker key={`${marker.label}-${marker.left}`} left={marker.left} label={marker.label} sublabel={marker.sublabel} color={marker.color} lane={marker.lane} />
+                        ))}
                       </div>
                     </div>
 
@@ -1336,8 +1447,9 @@ export default function DealerFactoryWarrantyPlanner() {
                       <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(Math.min(ownershipYears, derived.loanYears))} label="Ownership while paying loan" tone="bg-violet-300" textTone="text-violet-950" />
                         {ownershipYears > derived.loanYears ? <Segment left={pct(derived.loanYears)} width={pct(ownershipYears - derived.loanYears)} label="Owned after payoff" tone="bg-violet-200" textTone="text-violet-950" /> : <Segment left={pct(ownershipYears)} width={pct(derived.loanYears - ownershipYears)} label="Loan remains after expected ownership" tone="bg-orange-200" textTone="text-orange-950" />}
-                        <Marker left={pct(ownershipYears)} label="Ownership target" sublabel={`${ownershipYears} yrs`} color="bg-slate-700" />
-                        <Marker left={pct(derived.loanYears)} label="Loan ends" sublabel={`${formatYears(derived.loanYears)} yrs`} color="bg-blue-700" />
+                        {ownershipMarkers.map((marker) => (
+                          <Marker key={`${marker.label}-${marker.left}`} left={marker.left} label={marker.label} sublabel={marker.sublabel} color={marker.color} lane={marker.lane} />
+                        ))}
                       </div>
                     </div>
                   </div>
