@@ -55,6 +55,7 @@ type WarrantyData = {
 type VehicleLibrary = Record<string, Record<string, Record<string, WarrantyData>>>;
 
 type AuthMode = "sign-in" | "sign-up";
+type CertifiedCoverageBasis = "today" | "inservice" | "standard";
 
 type PlannerSnapshot = {
   id: string;
@@ -717,6 +718,7 @@ export default function DealerFactoryWarrantyPlanner() {
   const [isUsedVehicle, setIsUsedVehicle] = useState(false);
   const [estimatedInserviceDate, setEstimatedInserviceDate] = useState("");
   const [isCertified, setIsCertified] = useState(false);
+  const [certifiedCoverageBasis, setCertifiedCoverageBasis] = useState<CertifiedCoverageBasis>("today");
   const [selectedYear, setSelectedYear] = useState<number>(initialYear);
   const [selectedMake, setSelectedMake] = useState<string>(initialMake);
   const [selectedModel, setSelectedModel] = useState<string>(initialModel);
@@ -779,6 +781,7 @@ export default function DealerFactoryWarrantyPlanner() {
   useEffect(() => {
     if (!isUsedVehicle) {
       setIsCertified(false);
+      setCertifiedCoverageBasis("today");
     }
   }, [isUsedVehicle]);
 
@@ -787,9 +790,7 @@ export default function DealerFactoryWarrantyPlanner() {
   }, [presetYear, selectedMake, selectedModel]);
 
   const limitedCoverages = selectedWarranty?.limitedCoverages ?? [];
-  const totalFactoryYears = factoryYears + (isUsedVehicle && isCertified ? certifiedFactoryYears : 0);
   const totalFactoryMiles = factoryMiles + (isUsedVehicle && isCertified ? certifiedFactoryMiles : 0);
-  const totalPowertrainYears = powertrainYears + (isUsedVehicle && isCertified ? certifiedPowertrainYears : 0);
   const totalPowertrainMiles = powertrainMiles + (isUsedVehicle && isCertified ? certifiedPowertrainMiles : 0);
   const elapsedInserviceYears = useMemo(() => {
     if (!isUsedVehicle || !estimatedInserviceDate) return 0;
@@ -805,8 +806,34 @@ export default function DealerFactoryWarrantyPlanner() {
 
     return elapsedMs / (1000 * 60 * 60 * 24 * 365.25);
   }, [estimatedInserviceDate, isUsedVehicle]);
-  const remainingFactoryYears = Math.max(totalFactoryYears - elapsedInserviceYears, 0);
-  const remainingPowertrainYears = Math.max(totalPowertrainYears - elapsedInserviceYears, 0);
+  const baseRemainingFactoryYears = Math.max(factoryYears - elapsedInserviceYears, 0);
+  const baseRemainingPowertrainYears = Math.max(powertrainYears - elapsedInserviceYears, 0);
+  const remainingFactoryYears = useMemo(() => {
+    if (!isUsedVehicle || !isCertified) return baseRemainingFactoryYears;
+
+    if (certifiedCoverageBasis === "inservice") {
+      return Math.max(factoryYears + certifiedFactoryYears - elapsedInserviceYears, 0);
+    }
+
+    if (certifiedCoverageBasis === "standard") {
+      return factoryYears + certifiedFactoryYears;
+    }
+
+    return baseRemainingFactoryYears + certifiedFactoryYears;
+  }, [baseRemainingFactoryYears, certifiedCoverageBasis, certifiedFactoryYears, elapsedInserviceYears, factoryYears, isCertified, isUsedVehicle]);
+  const remainingPowertrainYears = useMemo(() => {
+    if (!isUsedVehicle || !isCertified) return baseRemainingPowertrainYears;
+
+    if (certifiedCoverageBasis === "inservice") {
+      return Math.max(powertrainYears + certifiedPowertrainYears - elapsedInserviceYears, 0);
+    }
+
+    if (certifiedCoverageBasis === "standard") {
+      return powertrainYears + certifiedPowertrainYears;
+    }
+
+    return baseRemainingPowertrainYears + certifiedPowertrainYears;
+  }, [baseRemainingPowertrainYears, certifiedCoverageBasis, certifiedPowertrainYears, elapsedInserviceYears, isCertified, isUsedVehicle, powertrainYears]);
 
   useEffect(() => {
     if (!selectedWarranty) return;
@@ -1072,6 +1099,7 @@ export default function DealerFactoryWarrantyPlanner() {
     setIsUsedVehicle(!yearOptions.includes(snapshot.vehicle_year));
     setEstimatedInserviceDate("");
     setIsCertified(false);
+    setCertifiedCoverageBasis("today");
     setSelectedYear(snapshot.vehicle_year);
     setSelectedMake(snapshot.make);
     setSelectedModel(snapshot.model);
@@ -1335,7 +1363,8 @@ export default function DealerFactoryWarrantyPlanner() {
                       <div className="mt-1 text-xs text-slate-500">Factory: {selectedWarranty.factoryYears} yr / {formatMiles(selectedWarranty.factoryMiles)} mi • Powertrain: {selectedWarranty.powertrainYears} yr / {formatMiles(selectedWarranty.powertrainMiles)} mi</div>
                       {isUsedVehicle && isCertified ? (
                         <div className="mt-1 text-xs text-emerald-700">
-                          Certified totals: {formatYears(remainingFactoryYears)} yr / {formatMiles(totalFactoryMiles)} mi factory and {formatYears(remainingPowertrainYears)} yr / {formatMiles(totalPowertrainMiles)} mi powertrain.
+                          Certified totals: {formatYears(remainingFactoryYears)} yr / {formatMiles(totalFactoryMiles)} mi factory and {formatYears(remainingPowertrainYears)} yr / {formatMiles(totalPowertrainMiles)} mi powertrain, calculated from{" "}
+                          {certifiedCoverageBasis === "today" ? "today" : certifiedCoverageBasis === "inservice" ? "the in-service date" : "the standard warranty term"}.
                         </div>
                       ) : null}
                       {limitedCoverages.length > 0 ? (
@@ -1370,22 +1399,43 @@ export default function DealerFactoryWarrantyPlanner() {
                     <input type="checkbox" checked={isCertified} onChange={(e) => setIsCertified(e.target.checked)} className="h-4 w-4" />
                   </div>
                   {isCertified ? (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Additional Factory Years</Label>
-                        <Input type="number" value={certifiedFactoryYears} onChange={(e) => setCertifiedFactoryYears(Number(e.target.value) || 0)} />
+                        <Label>Additional Coverage Basis</Label>
+                        <select
+                          value={certifiedCoverageBasis}
+                          onChange={(e) => setCertifiedCoverageBasis(e.target.value as CertifiedCoverageBasis)}
+                          className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                        >
+                          <option value="today">Add From Today</option>
+                          <option value="inservice">Add From Inservice Date</option>
+                          <option value="standard">Just Add On To Standard</option>
+                        </select>
+                        <p className="text-xs text-slate-500">
+                          {certifiedCoverageBasis === "today"
+                            ? "Additional years are added to the remaining warranty starting today."
+                            : certifiedCoverageBasis === "inservice"
+                              ? "Additional years are treated as if they started on the in-service date and are reduced by elapsed time."
+                              : "Additional years are added straight onto the standard term without reducing them by elapsed time."}
+                        </p>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Additional Factory Miles</Label>
-                        <Input type="number" value={certifiedFactoryMiles} onChange={(e) => setCertifiedFactoryMiles(Number(e.target.value) || 0)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Additional Powertrain Years</Label>
-                        <Input type="number" value={certifiedPowertrainYears} onChange={(e) => setCertifiedPowertrainYears(Number(e.target.value) || 0)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Additional Powertrain Miles</Label>
-                        <Input type="number" value={certifiedPowertrainMiles} onChange={(e) => setCertifiedPowertrainMiles(Number(e.target.value) || 0)} />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Additional Factory Years</Label>
+                          <Input type="number" value={certifiedFactoryYears} onChange={(e) => setCertifiedFactoryYears(Number(e.target.value) || 0)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Additional Factory Miles</Label>
+                          <Input type="number" value={certifiedFactoryMiles} onChange={(e) => setCertifiedFactoryMiles(Number(e.target.value) || 0)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Additional Powertrain Years</Label>
+                          <Input type="number" value={certifiedPowertrainYears} onChange={(e) => setCertifiedPowertrainYears(Number(e.target.value) || 0)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Additional Powertrain Miles</Label>
+                          <Input type="number" value={certifiedPowertrainMiles} onChange={(e) => setCertifiedPowertrainMiles(Number(e.target.value) || 0)} />
+                        </div>
                       </div>
                     </div>
                   ) : null}
