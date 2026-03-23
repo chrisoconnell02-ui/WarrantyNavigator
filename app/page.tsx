@@ -827,7 +827,7 @@ export default function DealerFactoryWarrantyPlanner() {
     if (!isUsedVehicle || !isCertified) return baseRemainingPowertrainYears;
 
     if (certifiedPowertrainCoverageBasis === "inservice") {
-      return Math.max(powertrainYears + certifiedPowertrainYears - elapsedInserviceYears, 0);
+      return Math.max(certifiedPowertrainYears - elapsedInserviceYears, 0);
     }
 
     if (certifiedPowertrainCoverageBasis === "standard") {
@@ -850,6 +850,10 @@ export default function DealerFactoryWarrantyPlanner() {
 
     if (certifiedPowertrainCoverageBasis === "today") {
       return Math.max(baseRemainingPowertrainMiles, certifiedPowertrainMiles);
+    }
+
+    if (certifiedPowertrainCoverageBasis === "inservice") {
+      return Math.max(certifiedPowertrainMiles - milesAtOrigination, 0);
     }
 
     return Math.max(powertrainMiles + certifiedPowertrainMiles - milesAtOrigination, 0);
@@ -1441,17 +1445,17 @@ export default function DealerFactoryWarrantyPlanner() {
                             {certifiedPowertrainCoverageBasis === "today"
                               ? "Additional powertrain years and miles run from today and replace the remaining term if they last longer."
                               : certifiedPowertrainCoverageBasis === "inservice"
-                                ? "Additional powertrain coverage is treated as if it started on the in-service date and is reduced by elapsed time and mileage."
+                                ? "Entered powertrain years and miles override the original powertrain term and are reduced from the in-service date."
                                 : "Additional powertrain coverage is added straight onto the original powertrain term."}
                           </p>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-2">
-                            <Label>Additional Powertrain Years</Label>
+                            <Label>{certifiedPowertrainCoverageBasis === "inservice" ? "Override Powertrain Years" : "Additional Powertrain Years"}</Label>
                             <Input type="number" value={certifiedPowertrainYears} onChange={(e) => setCertifiedPowertrainYears(Number(e.target.value) || 0)} />
                           </div>
                           <div className="space-y-2">
-                            <Label>Additional Powertrain Miles</Label>
+                            <Label>{certifiedPowertrainCoverageBasis === "inservice" ? "Override Powertrain Miles" : "Additional Powertrain Miles"}</Label>
                             <Input type="number" value={certifiedPowertrainMiles} onChange={(e) => setCertifiedPowertrainMiles(Number(e.target.value) || 0)} />
                           </div>
                         </div>
