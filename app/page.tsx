@@ -790,8 +790,6 @@ export default function DealerFactoryWarrantyPlanner() {
   }, [presetYear, selectedMake, selectedModel]);
 
   const limitedCoverages = selectedWarranty?.limitedCoverages ?? [];
-  const totalFactoryMiles = factoryMiles + (isUsedVehicle && isCertified ? certifiedFactoryMiles : 0);
-  const totalPowertrainMiles = powertrainMiles + (isUsedVehicle && isCertified ? certifiedPowertrainMiles : 0);
   const elapsedInserviceYears = useMemo(() => {
     if (!isUsedVehicle || !estimatedInserviceDate) return 0;
 
@@ -808,6 +806,8 @@ export default function DealerFactoryWarrantyPlanner() {
   }, [estimatedInserviceDate, isUsedVehicle]);
   const baseRemainingFactoryYears = Math.max(factoryYears - elapsedInserviceYears, 0);
   const baseRemainingPowertrainYears = Math.max(powertrainYears - elapsedInserviceYears, 0);
+  const baseRemainingFactoryMiles = Math.max(factoryMiles - milesAtOrigination, 0);
+  const baseRemainingPowertrainMiles = Math.max(powertrainMiles - milesAtOrigination, 0);
   const remainingFactoryYears = useMemo(() => {
     if (!isUsedVehicle || !isCertified) return baseRemainingFactoryYears;
 
@@ -834,6 +834,26 @@ export default function DealerFactoryWarrantyPlanner() {
 
     return Math.max(baseRemainingPowertrainYears, certifiedPowertrainYears);
   }, [baseRemainingPowertrainYears, certifiedCoverageBasis, certifiedPowertrainYears, elapsedInserviceYears, isCertified, isUsedVehicle, powertrainYears]);
+  const remainingFactoryMiles = useMemo(() => {
+    if (!isUsedVehicle || !isCertified) return baseRemainingFactoryMiles;
+
+    if (certifiedCoverageBasis === "today") {
+      return Math.max(baseRemainingFactoryMiles, certifiedFactoryMiles);
+    }
+
+    return factoryMiles + certifiedFactoryMiles - milesAtOrigination;
+  }, [baseRemainingFactoryMiles, certifiedCoverageBasis, certifiedFactoryMiles, factoryMiles, isCertified, isUsedVehicle, milesAtOrigination]);
+  const remainingPowertrainMiles = useMemo(() => {
+    if (!isUsedVehicle || !isCertified) return baseRemainingPowertrainMiles;
+
+    if (certifiedCoverageBasis === "today") {
+      return Math.max(baseRemainingPowertrainMiles, certifiedPowertrainMiles);
+    }
+
+    return powertrainMiles + certifiedPowertrainMiles - milesAtOrigination;
+  }, [baseRemainingPowertrainMiles, certifiedCoverageBasis, certifiedPowertrainMiles, isCertified, isUsedVehicle, milesAtOrigination, powertrainMiles]);
+  const displayFactoryMiles = Math.max(remainingFactoryMiles, 0);
+  const displayPowertrainMiles = Math.max(remainingPowertrainMiles, 0);
 
   useEffect(() => {
     if (!selectedWarranty) return;
@@ -846,8 +866,6 @@ export default function DealerFactoryWarrantyPlanner() {
 
   const derived = useMemo(() => {
     const loanYears = loanTermMonths / 12;
-    const remainingFactoryMiles = Math.max(totalFactoryMiles - milesAtOrigination, 0);
-    const remainingPowertrainMiles = Math.max(totalPowertrainMiles - milesAtOrigination, 0);
     const bumperToBumperYearsByDriving = remainingFactoryMiles / Math.max(annualMileage, 1);
     const powertrainYearsByDriving = remainingPowertrainMiles / Math.max(annualMileage, 1);
     const bumperToBumperActualYears = Math.min(remainingFactoryYears, bumperToBumperYearsByDriving);
@@ -884,7 +902,7 @@ export default function DealerFactoryWarrantyPlanner() {
       bumperEndsBy,
       powertrainEndsBy
     };
-  }, [annualMileage, loanTermMonths, milesAtOrigination, ownershipYears, remainingFactoryYears, remainingPowertrainYears, totalFactoryMiles, totalPowertrainMiles, vscMiles, vscYears]);
+  }, [annualMileage, loanTermMonths, ownershipYears, remainingFactoryMiles, remainingFactoryYears, remainingPowertrainMiles, remainingPowertrainYears, vscMiles, vscYears]);
 
   const pct = (years: number) => clamp((years / derived.maxTimelineYears) * 100, 0, 100);
   const vinDecoded = useMemo(() => decodeVin(vin), [vin]);
@@ -1542,8 +1560,8 @@ export default function DealerFactoryWarrantyPlanner() {
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
                     <Badge className="rounded-full">Starts at {formatMiles(milesAtOrigination)} mi</Badge>
-                    <Badge className="rounded-full">Bumper-to-Bumper {formatYears(remainingFactoryYears)} yr / {formatMiles(totalFactoryMiles)} mi</Badge>
-                    <Badge className="rounded-full">Powertrain {formatYears(remainingPowertrainYears)} yr / {formatMiles(totalPowertrainMiles)} mi</Badge>
+                    <Badge className="rounded-full">Bumper-to-Bumper {formatYears(remainingFactoryYears)} yr / {formatMiles(displayFactoryMiles)} mi</Badge>
+                    <Badge className="rounded-full">Powertrain {formatYears(remainingPowertrainYears)} yr / {formatMiles(displayPowertrainMiles)} mi</Badge>
                     {isUsedVehicle && isCertified ? <Badge className="rounded-full">Certified coverage included</Badge> : null}
                     {limitedCoverages.length > 0 ? <Badge className="rounded-full">Limited electronics coverage applies</Badge> : null}
                     {showVscOverlay ? <Badge className="rounded-full">VSC {vscYears} yr / {formatMiles(vscMiles)} mi</Badge> : null}
