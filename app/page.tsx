@@ -56,6 +56,7 @@ type VehicleLibrary = Record<string, Record<string, Record<string, WarrantyData>
 
 type AuthMode = "sign-in" | "sign-up";
 type CertifiedCoverageBasis = "today" | "inservice" | "standard";
+type VscCoverageBasis = "addon" | "inservice";
 
 type PlannerSnapshot = {
   id: string;
@@ -737,6 +738,7 @@ export default function DealerFactoryWarrantyPlanner() {
   const [annualMileage, setAnnualMileage] = useState<number>(18000);
   const [ownershipYears, setOwnershipYears] = useState<number>(7);
   const [showVscOverlay, setShowVscOverlay] = useState<boolean>(false);
+  const [vscCoverageBasis, setVscCoverageBasis] = useState<VscCoverageBasis>("addon");
   const [vscYears, setVscYears] = useState<number>(5);
   const [vscMiles, setVscMiles] = useState<number>(75000);
   const [dealerName, setDealerName] = useState<string>("Dealer Account");
@@ -860,6 +862,20 @@ export default function DealerFactoryWarrantyPlanner() {
   }, [baseRemainingPowertrainMiles, certifiedPowertrainCoverageBasis, certifiedPowertrainMiles, isCertified, isUsedVehicle, milesAtOrigination, powertrainMiles]);
   const displayFactoryMiles = Math.max(remainingFactoryMiles, 0);
   const displayPowertrainMiles = Math.max(remainingPowertrainMiles, 0);
+  const remainingVscYears = useMemo(() => {
+    if (vscCoverageBasis === "inservice") {
+      return Math.max(vscYears - elapsedInserviceYears, 0);
+    }
+
+    return vscYears;
+  }, [elapsedInserviceYears, vscCoverageBasis, vscYears]);
+  const remainingVscMiles = useMemo(() => {
+    if (vscCoverageBasis === "inservice") {
+      return Math.max(vscMiles - milesAtOrigination, 0);
+    }
+
+    return vscMiles;
+  }, [milesAtOrigination, vscCoverageBasis, vscMiles]);
 
   useEffect(() => {
     if (!selectedWarranty) return;
@@ -876,9 +892,9 @@ export default function DealerFactoryWarrantyPlanner() {
     const powertrainYearsByDriving = remainingPowertrainMiles / Math.max(annualMileage, 1);
     const bumperToBumperActualYears = Math.min(remainingFactoryYears, bumperToBumperYearsByDriving);
     const powertrainActualYears = Math.min(remainingPowertrainYears, powertrainYearsByDriving);
-    const vscYearsByDriving = vscMiles / Math.max(annualMileage, 1);
-    const vscActualYears = Math.min(vscYears, vscYearsByDriving);
-    const protectedYearsWithVsc = Math.max(bumperToBumperActualYears, vscActualYears);
+    const vscYearsByDriving = remainingVscMiles / Math.max(annualMileage, 1);
+    const vscActualYears = Math.min(remainingVscYears, vscYearsByDriving);
+    const protectedYearsWithVsc = vscCoverageBasis === "addon" ? bumperToBumperActualYears + vscActualYears : Math.max(bumperToBumperActualYears, vscActualYears);
     const bumperGapYears = Math.max(ownershipYears - bumperToBumperActualYears, 0);
     const loanAfterBumperGap = Math.max(loanYears - bumperToBumperActualYears, 0);
     const ownershipOutOfWarrantyRisk = ownershipYears > 0 ? (bumperGapYears / ownershipYears) * 100 : 0;
@@ -887,7 +903,7 @@ export default function DealerFactoryWarrantyPlanner() {
     const loanGapWithVsc = Math.max(loanYears - protectedYearsWithVsc, 0);
     const ownershipRiskWithVsc = ownershipYears > 0 ? (ownershipGapWithVsc / ownershipYears) * 100 : 0;
     const loanRiskWithVsc = loanYears > 0 ? (loanGapWithVsc / loanYears) * 100 : 0;
-    const maxTimelineYears = Math.max(ownershipYears, loanYears, remainingFactoryYears, remainingPowertrainYears, vscYears, bumperToBumperYearsByDriving, powertrainYearsByDriving, vscYearsByDriving, 6) * 1.15;
+    const maxTimelineYears = Math.max(ownershipYears, loanYears, remainingFactoryYears, remainingPowertrainYears, protectedYearsWithVsc, bumperToBumperYearsByDriving, powertrainYearsByDriving, vscYearsByDriving, 6) * 1.15;
     const bumperEndsBy = bumperToBumperYearsByDriving < remainingFactoryYears ? "mileage" : "time";
     const powertrainEndsBy = powertrainYearsByDriving < remainingPowertrainYears ? "mileage" : "time";
 
@@ -908,7 +924,7 @@ export default function DealerFactoryWarrantyPlanner() {
       bumperEndsBy,
       powertrainEndsBy
     };
-  }, [annualMileage, loanTermMonths, ownershipYears, remainingFactoryMiles, remainingFactoryYears, remainingPowertrainMiles, remainingPowertrainYears, vscMiles, vscYears]);
+  }, [annualMileage, loanTermMonths, ownershipYears, remainingFactoryMiles, remainingFactoryYears, remainingPowertrainMiles, remainingPowertrainYears, remainingVscMiles, remainingVscYears, vscCoverageBasis]);
 
   const pct = (years: number) => clamp((years / derived.maxTimelineYears) * 100, 0, 100);
   const vinDecoded = useMemo(() => decodeVin(vin), [vin]);
@@ -1121,6 +1137,7 @@ export default function DealerFactoryWarrantyPlanner() {
     setAnnualMileage(snapshot.annual_mileage);
     setOwnershipYears(snapshot.ownership_years);
     setShowVscOverlay(snapshot.show_vsc_overlay);
+    setVscCoverageBasis("addon");
     setVscYears(snapshot.vsc_years);
     setVscMiles(snapshot.vsc_miles);
     setSnapshotName(snapshot.snapshot_name);
@@ -1520,6 +1537,22 @@ export default function DealerFactoryWarrantyPlanner() {
                   <Label className="text-sm font-semibold">Show VSC Overlay</Label>
                   <input type="checkbox" checked={showVscOverlay} onChange={(e) => setShowVscOverlay(e.target.checked)} className="h-4 w-4" />
                 </div>
+                <div className="space-y-2">
+                  <Label>VSC Coverage Basis</Label>
+                  <select
+                    value={vscCoverageBasis}
+                    onChange={(e) => setVscCoverageBasis(e.target.value as VscCoverageBasis)}
+                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="addon">Add On</option>
+                    <option value="inservice">From Inservice Date</option>
+                  </select>
+                  <p className="text-xs text-slate-500">
+                    {vscCoverageBasis === "addon"
+                      ? "VSC adds coverage after the factory term ends."
+                      : "VSC is treated as total coverage from the in-service date and is reduced by elapsed time and mileage."}
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>VSC Years</Label>
@@ -1596,7 +1629,7 @@ export default function DealerFactoryWarrantyPlanner() {
                     <Badge className="rounded-full">Powertrain {formatYears(remainingPowertrainYears)} yr / {formatMiles(displayPowertrainMiles)} mi</Badge>
                     {isUsedVehicle && isCertified ? <Badge className="rounded-full">Certified coverage included</Badge> : null}
                     {limitedCoverages.length > 0 ? <Badge className="rounded-full">Limited electronics coverage applies</Badge> : null}
-                    {showVscOverlay ? <Badge className="rounded-full">VSC {vscYears} yr / {formatMiles(vscMiles)} mi</Badge> : null}
+                    {showVscOverlay ? <Badge className="rounded-full">VSC {formatYears(remainingVscYears)} yr / {formatMiles(remainingVscMiles)} mi</Badge> : null}
                     <Badge className="rounded-full">Loan {formatYears(derived.loanYears)} yrs</Badge>
                     <button type="button" onClick={() => void handleSaveAndPrint()} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 no-print">
                       Save / Print PDF
