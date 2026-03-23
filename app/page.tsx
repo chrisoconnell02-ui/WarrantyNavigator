@@ -735,7 +735,7 @@ export default function DealerFactoryWarrantyPlanner() {
   const [certifiedPowertrainMiles, setCertifiedPowertrainMiles] = useState<number>(0);
   const [loanTermMonths, setLoanTermMonths] = useState<number>(72);
   const [annualMileage, setAnnualMileage] = useState<number>(18000);
-  const [ownershipYears, setOwnershipYears] = useState<number>(5);
+  const [ownershipYears, setOwnershipYears] = useState<number>(7);
   const [showVscOverlay, setShowVscOverlay] = useState<boolean>(false);
   const [vscYears, setVscYears] = useState<number>(5);
   const [vscMiles, setVscMiles] = useState<number>(75000);
