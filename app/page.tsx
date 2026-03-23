@@ -714,6 +714,9 @@ export default function DealerFactoryWarrantyPlanner() {
   const initialModel = Object.keys(VEHICLE_LIBRARY[String(initialYear)]?.[initialMake] ?? {})[0] ?? "";
 
   const [vin, setVin] = useState("");
+  const [isUsedVehicle, setIsUsedVehicle] = useState(false);
+  const [estimatedInserviceDate, setEstimatedInserviceDate] = useState("");
+  const [isCertified, setIsCertified] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(initialYear);
   const [selectedMake, setSelectedMake] = useState<string>(initialMake);
   const [selectedModel, setSelectedModel] = useState<string>(initialModel);
@@ -723,6 +726,10 @@ export default function DealerFactoryWarrantyPlanner() {
   const [factoryMiles, setFactoryMiles] = useState<number>(36000);
   const [powertrainYears, setPowertrainYears] = useState<number>(5);
   const [powertrainMiles, setPowertrainMiles] = useState<number>(60000);
+  const [certifiedFactoryYears, setCertifiedFactoryYears] = useState<number>(0);
+  const [certifiedFactoryMiles, setCertifiedFactoryMiles] = useState<number>(0);
+  const [certifiedPowertrainYears, setCertifiedPowertrainYears] = useState<number>(0);
+  const [certifiedPowertrainMiles, setCertifiedPowertrainMiles] = useState<number>(0);
   const [loanTermMonths, setLoanTermMonths] = useState<number>(72);
   const [annualMileage, setAnnualMileage] = useState<number>(18000);
   const [ownershipYears, setOwnershipYears] = useState<number>(5);
@@ -745,8 +752,17 @@ export default function DealerFactoryWarrantyPlanner() {
   const [snapshotError, setSnapshotError] = useState<string>("");
   const [snapshotMessage, setSnapshotMessage] = useState<string>("");
 
-  const availableMakes = useMemo(() => Object.keys(VEHICLE_LIBRARY[String(selectedYear)] ?? {}), [selectedYear]);
-  const availableModels = useMemo(() => Object.keys(VEHICLE_LIBRARY[String(selectedYear)]?.[selectedMake] ?? {}), [selectedYear, selectedMake]);
+  const hasExactYearMatch = useMemo(() => yearOptions.includes(selectedYear), [selectedYear, yearOptions]);
+  const presetYear = useMemo(() => {
+    if (yearOptions.length === 0 || hasExactYearMatch) return selectedYear;
+
+    return yearOptions.reduce((closestYear, currentYear) => {
+      return Math.abs(currentYear - selectedYear) < Math.abs(closestYear - selectedYear) ? currentYear : closestYear;
+    }, yearOptions[0]);
+  }, [hasExactYearMatch, selectedYear, yearOptions]);
+
+  const availableMakes = useMemo(() => Object.keys(VEHICLE_LIBRARY[String(presetYear)] ?? {}), [presetYear]);
+  const availableModels = useMemo(() => Object.keys(VEHICLE_LIBRARY[String(presetYear)]?.[selectedMake] ?? {}), [presetYear, selectedMake]);
 
   useEffect(() => {
     if (!availableMakes.includes(selectedMake)) {
@@ -760,11 +776,21 @@ export default function DealerFactoryWarrantyPlanner() {
     }
   }, [availableModels, selectedModel]);
 
+  useEffect(() => {
+    if (!isUsedVehicle) {
+      setIsCertified(false);
+    }
+  }, [isUsedVehicle]);
+
   const selectedWarranty = useMemo<WarrantyData | null>(() => {
-    return VEHICLE_LIBRARY[String(selectedYear)]?.[selectedMake]?.[selectedModel] ?? null;
-  }, [selectedYear, selectedMake, selectedModel]);
+    return VEHICLE_LIBRARY[String(presetYear)]?.[selectedMake]?.[selectedModel] ?? null;
+  }, [presetYear, selectedMake, selectedModel]);
 
   const limitedCoverages = selectedWarranty?.limitedCoverages ?? [];
+  const totalFactoryYears = factoryYears + (isUsedVehicle && isCertified ? certifiedFactoryYears : 0);
+  const totalFactoryMiles = factoryMiles + (isUsedVehicle && isCertified ? certifiedFactoryMiles : 0);
+  const totalPowertrainYears = powertrainYears + (isUsedVehicle && isCertified ? certifiedPowertrainYears : 0);
+  const totalPowertrainMiles = powertrainMiles + (isUsedVehicle && isCertified ? certifiedPowertrainMiles : 0);
 
   useEffect(() => {
     if (!selectedWarranty) return;
@@ -777,12 +803,12 @@ export default function DealerFactoryWarrantyPlanner() {
 
   const derived = useMemo(() => {
     const loanYears = loanTermMonths / 12;
-    const remainingFactoryMiles = Math.max(factoryMiles - milesAtOrigination, 0);
-    const remainingPowertrainMiles = Math.max(powertrainMiles - milesAtOrigination, 0);
+    const remainingFactoryMiles = Math.max(totalFactoryMiles - milesAtOrigination, 0);
+    const remainingPowertrainMiles = Math.max(totalPowertrainMiles - milesAtOrigination, 0);
     const bumperToBumperYearsByDriving = remainingFactoryMiles / Math.max(annualMileage, 1);
     const powertrainYearsByDriving = remainingPowertrainMiles / Math.max(annualMileage, 1);
-    const bumperToBumperActualYears = Math.min(factoryYears, bumperToBumperYearsByDriving);
-    const powertrainActualYears = Math.min(powertrainYears, powertrainYearsByDriving);
+    const bumperToBumperActualYears = Math.min(totalFactoryYears, bumperToBumperYearsByDriving);
+    const powertrainActualYears = Math.min(totalPowertrainYears, powertrainYearsByDriving);
     const vscYearsByDriving = vscMiles / Math.max(annualMileage, 1);
     const vscActualYears = Math.min(vscYears, vscYearsByDriving);
     const protectedYearsWithVsc = Math.max(bumperToBumperActualYears, vscActualYears);
@@ -794,9 +820,9 @@ export default function DealerFactoryWarrantyPlanner() {
     const loanGapWithVsc = Math.max(loanYears - protectedYearsWithVsc, 0);
     const ownershipRiskWithVsc = ownershipYears > 0 ? (ownershipGapWithVsc / ownershipYears) * 100 : 0;
     const loanRiskWithVsc = loanYears > 0 ? (loanGapWithVsc / loanYears) * 100 : 0;
-    const maxTimelineYears = Math.max(ownershipYears, loanYears, factoryYears, powertrainYears, vscYears, bumperToBumperYearsByDriving, powertrainYearsByDriving, vscYearsByDriving, 6) * 1.15;
-    const bumperEndsBy = bumperToBumperYearsByDriving < factoryYears ? "mileage" : "time";
-    const powertrainEndsBy = powertrainYearsByDriving < powertrainYears ? "mileage" : "time";
+    const maxTimelineYears = Math.max(ownershipYears, loanYears, totalFactoryYears, totalPowertrainYears, vscYears, bumperToBumperYearsByDriving, powertrainYearsByDriving, vscYearsByDriving, 6) * 1.15;
+    const bumperEndsBy = bumperToBumperYearsByDriving < totalFactoryYears ? "mileage" : "time";
+    const powertrainEndsBy = powertrainYearsByDriving < totalPowertrainYears ? "mileage" : "time";
 
     return {
       loanYears,
@@ -815,7 +841,7 @@ export default function DealerFactoryWarrantyPlanner() {
       bumperEndsBy,
       powertrainEndsBy
     };
-  }, [annualMileage, factoryMiles, factoryYears, loanTermMonths, milesAtOrigination, ownershipYears, powertrainMiles, powertrainYears, vscMiles, vscYears]);
+  }, [annualMileage, loanTermMonths, milesAtOrigination, ownershipYears, totalFactoryMiles, totalFactoryYears, totalPowertrainMiles, totalPowertrainYears, vscMiles, vscYears]);
 
   const pct = (years: number) => clamp((years / derived.maxTimelineYears) * 100, 0, 100);
   const vinDecoded = useMemo(() => decodeVin(vin), [vin]);
@@ -1027,6 +1053,9 @@ export default function DealerFactoryWarrantyPlanner() {
   const loadSnapshot = (snapshot: PlannerSnapshot) => {
     setActiveSnapshotId(snapshot.id);
     setVin(snapshot.vin ?? "");
+    setIsUsedVehicle(!yearOptions.includes(snapshot.vehicle_year));
+    setEstimatedInserviceDate("");
+    setIsCertified(false);
     setSelectedYear(snapshot.vehicle_year);
     setSelectedMake(snapshot.make);
     setSelectedModel(snapshot.model);
@@ -1036,6 +1065,10 @@ export default function DealerFactoryWarrantyPlanner() {
     setFactoryMiles(snapshot.factory_miles);
     setPowertrainYears(snapshot.powertrain_years);
     setPowertrainMiles(snapshot.powertrain_miles);
+    setCertifiedFactoryYears(0);
+    setCertifiedFactoryMiles(0);
+    setCertifiedPowertrainYears(0);
+    setCertifiedPowertrainMiles(0);
     setLoanTermMonths(snapshot.loan_term_months);
     setAnnualMileage(snapshot.annual_mileage);
     setOwnershipYears(snapshot.ownership_years);
@@ -1218,10 +1251,48 @@ export default function DealerFactoryWarrantyPlanner() {
                 <Label className="text-sm font-semibold">Vehicle Selector</Label>
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
+                    <Label>Condition</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUsedVehicle(false);
+                          setSelectedYear(presetYear);
+                        }}
+                        className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                          !isUsedVehicle ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        New
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsUsedVehicle(true)}
+                        className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                          isUsedVehicle ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        Used
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
                     <Label>Vehicle Year</Label>
-                    <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-                      {yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
-                    </select>
+                    {isUsedVehicle ? (
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={1900}
+                        max={2100}
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value) || initialYear)}
+                        placeholder="Enter vehicle year"
+                      />
+                    ) : (
+                      <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        {yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                      </select>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Make</Label>
@@ -1240,7 +1311,17 @@ export default function DealerFactoryWarrantyPlanner() {
                   {selectedWarranty ? (
                     <>
                       <div className="font-medium text-slate-900">{selectedYear} {selectedMake} {MODEL_LABELS[selectedModel] || selectedModel}</div>
+                      {isUsedVehicle && !hasExactYearMatch ? (
+                        <div className="mt-1 text-xs text-amber-700">
+                          Warranty presets are using the closest catalog year available: {presetYear}. Adjust the coverage fields below if needed.
+                        </div>
+                      ) : null}
                       <div className="mt-1 text-xs text-slate-500">Factory: {selectedWarranty.factoryYears} yr / {formatMiles(selectedWarranty.factoryMiles)} mi • Powertrain: {selectedWarranty.powertrainYears} yr / {formatMiles(selectedWarranty.powertrainMiles)} mi</div>
+                      {isUsedVehicle && isCertified ? (
+                        <div className="mt-1 text-xs text-emerald-700">
+                          Certified totals: {totalFactoryYears} yr / {formatMiles(totalFactoryMiles)} mi factory and {totalPowertrainYears} yr / {formatMiles(totalPowertrainMiles)} mi powertrain.
+                        </div>
+                      ) : null}
                       {limitedCoverages.length > 0 ? (
                         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
                           <div className="font-semibold mb-1">Coverage note</div>
@@ -1258,9 +1339,42 @@ export default function DealerFactoryWarrantyPlanner() {
               </div>
 
               <div className="space-y-2">
-                <Label>Miles at Origination</Label>
+                <Label>{isUsedVehicle ? "Current Miles" : "Miles at Origination"}</Label>
                 <Input type="number" value={milesAtOrigination} onChange={(e) => setMilesAtOrigination(Number(e.target.value) || 0)} />
               </div>
+
+              {isUsedVehicle ? (
+                <div className="rounded-2xl border border-slate-200 p-4 space-y-4 bg-slate-50">
+                  <div className="space-y-2">
+                    <Label>Estimated Inservice Date</Label>
+                    <Input type="date" value={estimatedInserviceDate} onChange={(e) => setEstimatedInserviceDate(e.target.value)} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Certified</Label>
+                    <input type="checkbox" checked={isCertified} onChange={(e) => setIsCertified(e.target.checked)} className="h-4 w-4" />
+                  </div>
+                  {isCertified ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Additional Factory Years</Label>
+                        <Input type="number" value={certifiedFactoryYears} onChange={(e) => setCertifiedFactoryYears(Number(e.target.value) || 0)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Additional Factory Miles</Label>
+                        <Input type="number" value={certifiedFactoryMiles} onChange={(e) => setCertifiedFactoryMiles(Number(e.target.value) || 0)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Additional Powertrain Years</Label>
+                        <Input type="number" value={certifiedPowertrainYears} onChange={(e) => setCertifiedPowertrainYears(Number(e.target.value) || 0)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Additional Powertrain Miles</Label>
+                        <Input type="number" value={certifiedPowertrainMiles} onChange={(e) => setCertifiedPowertrainMiles(Number(e.target.value) || 0)} />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -1389,8 +1503,9 @@ export default function DealerFactoryWarrantyPlanner() {
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
                     <Badge className="rounded-full">Starts at {formatMiles(milesAtOrigination)} mi</Badge>
-                    <Badge className="rounded-full">Bumper-to-Bumper {factoryYears} yr / {formatMiles(factoryMiles)} mi</Badge>
-                    <Badge className="rounded-full">Powertrain {powertrainYears} yr / {formatMiles(powertrainMiles)} mi</Badge>
+                    <Badge className="rounded-full">Bumper-to-Bumper {totalFactoryYears} yr / {formatMiles(totalFactoryMiles)} mi</Badge>
+                    <Badge className="rounded-full">Powertrain {totalPowertrainYears} yr / {formatMiles(totalPowertrainMiles)} mi</Badge>
+                    {isUsedVehicle && isCertified ? <Badge className="rounded-full">Certified coverage included</Badge> : null}
                     {limitedCoverages.length > 0 ? <Badge className="rounded-full">Limited electronics coverage applies</Badge> : null}
                     {showVscOverlay ? <Badge className="rounded-full">VSC {vscYears} yr / {formatMiles(vscMiles)} mi</Badge> : null}
                     <Badge className="rounded-full">Loan {formatYears(derived.loanYears)} yrs</Badge>
