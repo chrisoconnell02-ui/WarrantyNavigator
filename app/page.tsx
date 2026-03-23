@@ -819,7 +819,7 @@ export default function DealerFactoryWarrantyPlanner() {
       return factoryYears + certifiedFactoryYears;
     }
 
-    return baseRemainingFactoryYears + certifiedFactoryYears;
+    return Math.max(baseRemainingFactoryYears, certifiedFactoryYears);
   }, [baseRemainingFactoryYears, certifiedCoverageBasis, certifiedFactoryYears, elapsedInserviceYears, factoryYears, isCertified, isUsedVehicle]);
   const remainingPowertrainYears = useMemo(() => {
     if (!isUsedVehicle || !isCertified) return baseRemainingPowertrainYears;
@@ -832,7 +832,7 @@ export default function DealerFactoryWarrantyPlanner() {
       return powertrainYears + certifiedPowertrainYears;
     }
 
-    return baseRemainingPowertrainYears + certifiedPowertrainYears;
+    return Math.max(baseRemainingPowertrainYears, certifiedPowertrainYears);
   }, [baseRemainingPowertrainYears, certifiedCoverageBasis, certifiedPowertrainYears, elapsedInserviceYears, isCertified, isUsedVehicle, powertrainYears]);
 
   useEffect(() => {
@@ -1386,7 +1386,7 @@ export default function DealerFactoryWarrantyPlanner() {
                         </select>
                         <p className="text-xs text-slate-500">
                           {certifiedCoverageBasis === "today"
-                            ? "Additional years are added to the remaining warranty starting today."
+                            ? "Additional years run from today and replace the remaining term if they last longer."
                             : certifiedCoverageBasis === "inservice"
                               ? "Additional years are treated as if they started on the in-service date and are reduced by elapsed time."
                               : "Additional years are added straight onto the standard term without reducing them by elapsed time."}
