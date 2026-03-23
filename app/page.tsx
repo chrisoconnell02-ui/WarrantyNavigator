@@ -843,7 +843,7 @@ export default function DealerFactoryWarrantyPlanner() {
       return Math.max(baseRemainingFactoryMiles, certifiedFactoryMiles);
     }
 
-    return factoryMiles + certifiedFactoryMiles - milesAtOrigination;
+    return Math.max(factoryMiles + certifiedFactoryMiles - milesAtOrigination, 0);
   }, [baseRemainingFactoryMiles, certifiedFactoryCoverageBasis, certifiedFactoryMiles, factoryMiles, isCertified, isUsedVehicle, milesAtOrigination]);
   const remainingPowertrainMiles = useMemo(() => {
     if (!isUsedVehicle || !isCertified) return baseRemainingPowertrainMiles;
@@ -852,7 +852,7 @@ export default function DealerFactoryWarrantyPlanner() {
       return Math.max(baseRemainingPowertrainMiles, certifiedPowertrainMiles);
     }
 
-    return powertrainMiles + certifiedPowertrainMiles - milesAtOrigination;
+    return Math.max(powertrainMiles + certifiedPowertrainMiles - milesAtOrigination, 0);
   }, [baseRemainingPowertrainMiles, certifiedPowertrainCoverageBasis, certifiedPowertrainMiles, isCertified, isUsedVehicle, milesAtOrigination, powertrainMiles]);
   const displayFactoryMiles = Math.max(remainingFactoryMiles, 0);
   const displayPowertrainMiles = Math.max(remainingPowertrainMiles, 0);
