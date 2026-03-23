@@ -1657,7 +1657,7 @@ export default function DealerFactoryWarrantyPlanner() {
                   <div className="flex items-center gap-2 mb-6"><Car className="w-5 h-5" /><h2 className="text-lg font-semibold">Coverage Timeline</h2></div>
                   <div className="space-y-16 pt-4 pb-24">
                     <div>
-                      <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Factory Bumper-to-Bumper</span><span>{formatYears(derived.bumperToBumperActualYears)} years of real-world coverage</span></div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 mb-2"><span>Factory Bumper-to-Bumper</span><span>{formatYears(derived.bumperToBumperActualYears)} years of real-world coverage</span></div>
                       <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(derived.bumperToBumperActualYears)} label="Covered" tone="bg-emerald-300" textTone="text-emerald-950" />
                         <Segment left={pct(derived.bumperToBumperActualYears)} width={pct(ownershipYears - derived.bumperToBumperActualYears)} label="Ownership without factory coverage" tone="bg-rose-200" textTone="text-rose-950" />
@@ -1669,7 +1669,7 @@ export default function DealerFactoryWarrantyPlanner() {
                     </div>
 
                     <div>
-                      <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Powertrain Coverage</span><span>{formatYears(derived.powertrainActualYears)} years of real-world coverage</span></div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 mb-2"><span>Powertrain Coverage</span><span>{formatYears(derived.powertrainActualYears)} years of real-world coverage</span></div>
                       <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
                         <Segment left={0} width={pct(derived.powertrainActualYears)} label="Covered" tone="bg-sky-300" textTone="text-sky-950" />
                         <Segment left={pct(derived.powertrainActualYears)} width={pct(ownershipYears - derived.powertrainActualYears)} label="Ownership after powertrain expires" tone="bg-amber-200" textTone="text-amber-950" />
