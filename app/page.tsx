@@ -950,27 +950,6 @@ export default function DealerFactoryWarrantyPlanner() {
       ),
     [derived.loanYears, derived.powertrainActualYears, ownershipYears, pct]
   );
-  const ownershipMarkers = useMemo(
-    () =>
-      assignMarkerLanes(
-        [
-          {
-            left: pct(ownershipYears),
-            label: "Ownership target",
-            sublabel: `${ownershipYears} yrs`,
-            color: "bg-slate-700"
-          },
-          {
-            left: pct(derived.loanYears),
-            label: "Loan ends",
-            sublabel: `${formatYears(derived.loanYears)} yrs`,
-            color: "bg-blue-700"
-          }
-        ].sort((a, b) => a.left - b.left)
-      ),
-    [derived.loanYears, ownershipYears, pct]
-  );
-
   const customerMessage = useMemo(() => {
     if (milesAtOrigination > 0 && annualMileage >= 20000) {
       return `This is where used-car reality hits. Starting at ${formatMiles(milesAtOrigination)} miles and driving ${formatMiles(annualMileage)} miles a year, factory coverage disappears fast.`;
@@ -1361,12 +1340,6 @@ export default function DealerFactoryWarrantyPlanner() {
                         </div>
                       ) : null}
                       <div className="mt-1 text-xs text-slate-500">Factory: {selectedWarranty.factoryYears} yr / {formatMiles(selectedWarranty.factoryMiles)} mi • Powertrain: {selectedWarranty.powertrainYears} yr / {formatMiles(selectedWarranty.powertrainMiles)} mi</div>
-                      {isUsedVehicle && isCertified ? (
-                        <div className="mt-1 text-xs text-emerald-700">
-                          Certified totals: {formatYears(remainingFactoryYears)} yr / {formatMiles(totalFactoryMiles)} mi factory and {formatYears(remainingPowertrainYears)} yr / {formatMiles(totalPowertrainMiles)} mi powertrain, calculated from{" "}
-                          {certifiedCoverageBasis === "today" ? "today" : certifiedCoverageBasis === "inservice" ? "the in-service date" : "the standard warranty term"}.
-                        </div>
-                      ) : null}
                       {limitedCoverages.length > 0 ? (
                         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
                           <div className="font-semibold mb-1">Coverage note</div>
@@ -1409,7 +1382,7 @@ export default function DealerFactoryWarrantyPlanner() {
                         >
                           <option value="today">Add From Today</option>
                           <option value="inservice">Add From Inservice Date</option>
-                          <option value="standard">Just Add On To Standard</option>
+                          <option value="standard">Add to Original</option>
                         </select>
                         <p className="text-xs text-slate-500">
                           {certifiedCoverageBasis === "today"
@@ -1623,16 +1596,6 @@ export default function DealerFactoryWarrantyPlanner() {
                       </div>
                     </div>
 
-                    <div>
-                      <div className="flex justify-between text-xs text-slate-500 mb-2"><span>Customer Ownership vs Loan</span><span>{ownershipYears >= derived.loanYears ? "Ownership outlasts financing" : "Loan outlasts expected ownership"}</span></div>
-                      <div className="timeline-track relative h-8 rounded-xl bg-slate-100 overflow-visible">
-                        <Segment left={0} width={pct(Math.min(ownershipYears, derived.loanYears))} label="Ownership while paying loan" tone="bg-violet-300" textTone="text-violet-950" />
-                        {ownershipYears > derived.loanYears ? <Segment left={pct(derived.loanYears)} width={pct(ownershipYears - derived.loanYears)} label="Owned after payoff" tone="bg-violet-200" textTone="text-violet-950" /> : <Segment left={pct(ownershipYears)} width={pct(derived.loanYears - ownershipYears)} label="Loan remains after expected ownership" tone="bg-orange-200" textTone="text-orange-950" />}
-                        {ownershipMarkers.map((marker) => (
-                          <Marker key={`${marker.label}-${marker.left}`} left={marker.left} label={marker.label} sublabel={marker.sublabel} color={marker.color} lane={marker.lane} />
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 </div>
 
