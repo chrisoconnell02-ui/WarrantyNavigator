@@ -791,6 +791,22 @@ export default function DealerFactoryWarrantyPlanner() {
   const totalFactoryMiles = factoryMiles + (isUsedVehicle && isCertified ? certifiedFactoryMiles : 0);
   const totalPowertrainYears = powertrainYears + (isUsedVehicle && isCertified ? certifiedPowertrainYears : 0);
   const totalPowertrainMiles = powertrainMiles + (isUsedVehicle && isCertified ? certifiedPowertrainMiles : 0);
+  const elapsedInserviceYears = useMemo(() => {
+    if (!isUsedVehicle || !estimatedInserviceDate) return 0;
+
+    const inserviceDate = new Date(`${estimatedInserviceDate}T00:00:00`);
+    if (Number.isNaN(inserviceDate.getTime())) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const elapsedMs = today.getTime() - inserviceDate.getTime();
+    if (elapsedMs <= 0) return 0;
+
+    return elapsedMs / (1000 * 60 * 60 * 24 * 365.25);
+  }, [estimatedInserviceDate, isUsedVehicle]);
+  const remainingFactoryYears = Math.max(totalFactoryYears - elapsedInserviceYears, 0);
+  const remainingPowertrainYears = Math.max(totalPowertrainYears - elapsedInserviceYears, 0);
 
   useEffect(() => {
     if (!selectedWarranty) return;
@@ -807,8 +823,8 @@ export default function DealerFactoryWarrantyPlanner() {
     const remainingPowertrainMiles = Math.max(totalPowertrainMiles - milesAtOrigination, 0);
     const bumperToBumperYearsByDriving = remainingFactoryMiles / Math.max(annualMileage, 1);
     const powertrainYearsByDriving = remainingPowertrainMiles / Math.max(annualMileage, 1);
-    const bumperToBumperActualYears = Math.min(totalFactoryYears, bumperToBumperYearsByDriving);
-    const powertrainActualYears = Math.min(totalPowertrainYears, powertrainYearsByDriving);
+    const bumperToBumperActualYears = Math.min(remainingFactoryYears, bumperToBumperYearsByDriving);
+    const powertrainActualYears = Math.min(remainingPowertrainYears, powertrainYearsByDriving);
     const vscYearsByDriving = vscMiles / Math.max(annualMileage, 1);
     const vscActualYears = Math.min(vscYears, vscYearsByDriving);
     const protectedYearsWithVsc = Math.max(bumperToBumperActualYears, vscActualYears);
@@ -820,9 +836,9 @@ export default function DealerFactoryWarrantyPlanner() {
     const loanGapWithVsc = Math.max(loanYears - protectedYearsWithVsc, 0);
     const ownershipRiskWithVsc = ownershipYears > 0 ? (ownershipGapWithVsc / ownershipYears) * 100 : 0;
     const loanRiskWithVsc = loanYears > 0 ? (loanGapWithVsc / loanYears) * 100 : 0;
-    const maxTimelineYears = Math.max(ownershipYears, loanYears, totalFactoryYears, totalPowertrainYears, vscYears, bumperToBumperYearsByDriving, powertrainYearsByDriving, vscYearsByDriving, 6) * 1.15;
-    const bumperEndsBy = bumperToBumperYearsByDriving < totalFactoryYears ? "mileage" : "time";
-    const powertrainEndsBy = powertrainYearsByDriving < totalPowertrainYears ? "mileage" : "time";
+    const maxTimelineYears = Math.max(ownershipYears, loanYears, remainingFactoryYears, remainingPowertrainYears, vscYears, bumperToBumperYearsByDriving, powertrainYearsByDriving, vscYearsByDriving, 6) * 1.15;
+    const bumperEndsBy = bumperToBumperYearsByDriving < remainingFactoryYears ? "mileage" : "time";
+    const powertrainEndsBy = powertrainYearsByDriving < remainingPowertrainYears ? "mileage" : "time";
 
     return {
       loanYears,
@@ -841,7 +857,7 @@ export default function DealerFactoryWarrantyPlanner() {
       bumperEndsBy,
       powertrainEndsBy
     };
-  }, [annualMileage, loanTermMonths, milesAtOrigination, ownershipYears, totalFactoryMiles, totalFactoryYears, totalPowertrainMiles, totalPowertrainYears, vscMiles, vscYears]);
+  }, [annualMileage, loanTermMonths, milesAtOrigination, ownershipYears, remainingFactoryYears, remainingPowertrainYears, totalFactoryMiles, totalPowertrainMiles, vscMiles, vscYears]);
 
   const pct = (years: number) => clamp((years / derived.maxTimelineYears) * 100, 0, 100);
   const vinDecoded = useMemo(() => decodeVin(vin), [vin]);
@@ -1319,7 +1335,7 @@ export default function DealerFactoryWarrantyPlanner() {
                       <div className="mt-1 text-xs text-slate-500">Factory: {selectedWarranty.factoryYears} yr / {formatMiles(selectedWarranty.factoryMiles)} mi • Powertrain: {selectedWarranty.powertrainYears} yr / {formatMiles(selectedWarranty.powertrainMiles)} mi</div>
                       {isUsedVehicle && isCertified ? (
                         <div className="mt-1 text-xs text-emerald-700">
-                          Certified totals: {totalFactoryYears} yr / {formatMiles(totalFactoryMiles)} mi factory and {totalPowertrainYears} yr / {formatMiles(totalPowertrainMiles)} mi powertrain.
+                          Certified totals: {formatYears(remainingFactoryYears)} yr / {formatMiles(totalFactoryMiles)} mi factory and {formatYears(remainingPowertrainYears)} yr / {formatMiles(totalPowertrainMiles)} mi powertrain.
                         </div>
                       ) : null}
                       {limitedCoverages.length > 0 ? (
@@ -1503,8 +1519,8 @@ export default function DealerFactoryWarrantyPlanner() {
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
                     <Badge className="rounded-full">Starts at {formatMiles(milesAtOrigination)} mi</Badge>
-                    <Badge className="rounded-full">Bumper-to-Bumper {totalFactoryYears} yr / {formatMiles(totalFactoryMiles)} mi</Badge>
-                    <Badge className="rounded-full">Powertrain {totalPowertrainYears} yr / {formatMiles(totalPowertrainMiles)} mi</Badge>
+                    <Badge className="rounded-full">Bumper-to-Bumper {formatYears(remainingFactoryYears)} yr / {formatMiles(totalFactoryMiles)} mi</Badge>
+                    <Badge className="rounded-full">Powertrain {formatYears(remainingPowertrainYears)} yr / {formatMiles(totalPowertrainMiles)} mi</Badge>
                     {isUsedVehicle && isCertified ? <Badge className="rounded-full">Certified coverage included</Badge> : null}
                     {limitedCoverages.length > 0 ? <Badge className="rounded-full">Limited electronics coverage applies</Badge> : null}
                     {showVscOverlay ? <Badge className="rounded-full">VSC {vscYears} yr / {formatMiles(vscMiles)} mi</Badge> : null}
